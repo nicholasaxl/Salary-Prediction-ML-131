@@ -1,13 +1,31 @@
 ---
-title: "main"
+title: "PSTAT 131 Final Project: Model comparison for predicting the salary of a data science job"
 author: "Nicholas Axl Andrian"
 date: "2023-11-23"
 output: html_document
 ---
 
-Part 1: Exploratory Data Analysis
+Dataset used: https://www.kaggle.com/datasets/arnabchaki/data-science-salaries-2023
 
-Loading libraries
+In this project, we will be fitting several different machine learning algorithms to find out which method of prediction is the most accurate in getting the predicted salary.
+
+About the dataset's variables (excerpt from the kaggle site)
+
++ work_year: The year the salary was paid.
++ experience_level: The experience level in the job during the year
++ employment_type: The type of employment for the role
++ job_title: The role worked in during the year.
++ salary: The total gross salary amount paid.
++ salary_currency: The currency of the salary paid as an ISO 4217 currency code.
++ salaryinusd: The salary in USD
++ employee_residence: Employee's primary country of residence in during the work + year as an ISO 3166 country code.
++ remote_ratio: The overall amount of work done remotely
++ company_location: The country of the employer's main office or contracting branch
++ company_size: The median number of people that worked for the company during the year
+
+
+# Part 1: Exploratory Data Analysis
+
 ```{r setup, include=FALSE}
 library(dplyr)
 library(randomForest)
@@ -17,14 +35,25 @@ library(tree)
 library(tidyverse)
 ```
 
-Loading dataset
+#### Loading the dataset
 ```{r}
 salaries <- read.csv("ds_salaries.csv")
+```
+#### Checking the structure of the dataset
+```{r}
 head(salaries)
 str(salaries)
 ```
-Check the unique values of the character values experience level, employment level, job title, salary currency, employee residence, company location and company size
+#### Checking the summary of the dataset
 ```{r}
-unique(salaries$employee_residence)
+summary(salaries)
 ```
+#### Checking for null values
+```{r}
+colSums(is.na(salaries))
+```
+Fortunately, we have no null values so imputing is not required
+
+
+
 
