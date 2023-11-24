@@ -1,13 +1,16 @@
 ---
-title: "PSTAT 131 Final Project: Model comparison for predicting the salary of a data science job"
+title: 'PSTAT 131 Final Project: Model comparison for predicting the salary of a data
+  science job'
 author: "Nicholas Axl Andrian"
 date: "2023-11-23"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 Dataset used: https://www.kaggle.com/datasets/arnabchaki/data-science-salaries-2023
 
-In this project, we will be fitting several different machine learning algorithms to find out which method of prediction is the most accurate in getting the predicted salary.
+In this project, we will be fitting several different machine learning algorithms to find out which method of prediction is the most accurate in getting the predicted salary(in usd).
 
 About the dataset's variables (excerpt from the kaggle site)
 
@@ -23,17 +26,18 @@ About the dataset's variables (excerpt from the kaggle site)
 + company_location: The country of the employer's main office or contracting branch
 + company_size: The median number of people that worked for the company during the year
 
-
-# Part 1: Exploratory Data Analysis
-
-```{r setup, include=FALSE}
+```{r setup, message=FALSE}
 library(dplyr)
 library(randomForest)
 library(gbm)
 library(ISLR)
 library(tree)
 library(tidyverse)
+
+options("max.print" = 10) # to prevent page number bloat
 ```
+
+# Part 1: Exploratory Data Analysis
 
 #### Loading the dataset
 ```{r}
@@ -44,6 +48,9 @@ salaries <- read.csv("ds_salaries.csv")
 head(salaries)
 str(salaries)
 ```
+Already we can see an issue that needs to be worked on. Several variables seem to supposedly be read in as factors. We will finish conducting checks on the dataset before converting said columns.
+
+
 #### Checking the summary of the dataset
 ```{r}
 summary(salaries)
@@ -54,6 +61,29 @@ colSums(is.na(salaries))
 ```
 Fortunately, we have no null values so imputing is not required
 
+#### Checking potential factor columns for their unique values
+```{r}
+factor_cols <- salaries[, c(2, 3, 4, 6, 8, 10, 11)]
+
+# finding unique values, referenced code from https://www.kaggle.com/code/abdulfaheem11/data-science-salaries-2023-analysis
+
+# output ommitted to prevent too much space being taken up
+sapply(factor_cols, function(col) unique(col))
+```
+
+Changing said variables to become factors
+
+```{r}
+salaries[, c(2, 3, 4, 6, 8, 10, 11)] <- lapply(factor_cols, factor)
+str(salaries)
+```
+We can also drop the salary and salary_currency as we will just be using the salary_in_usd to simplify our steps. 
+
+```{r}
+salaries <- salaries[, !(names(salaries) %in% c('salary_currency', 'salary'))]
+```
+
+#### Visualization to search for patterns with regards to the salary_in_usd
 
 
 
