@@ -4,15 +4,15 @@ title: 'PSTAT 131 Final Project: Model comparison for predicting the salary of a
 author: "Nicholas Axl Andrian"
 date: "2023-11-23"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 Dataset used: https://www.kaggle.com/datasets/arnabchaki/data-science-salaries-2023
 
 In this project, we will be fitting several different machine learning algorithms to find out which method of prediction is the most accurate in getting the predicted salary(in usd).
 
-About the dataset's variables (excerpt from the kaggle site)
+About the data set's variables (excerpt from the kaggle site)
 
 + work_year: The year the salary was paid.
 + experience_level: The experience level in the job during the year
@@ -33,17 +33,20 @@ library(gbm)
 library(ISLR)
 library(tree)
 library(tidyverse)
+library(ggplot2)
+library(gridExtra)
 
-options("max.print" = 10) # to prevent page number bloat
+
+options("max.print" = 5) # to prevent page number bloat
 ```
 
 # Part 1: Exploratory Data Analysis
 
-#### Loading the dataset
+Loading the dataset
 ```{r}
 salaries <- read.csv("ds_salaries.csv")
 ```
-#### Checking the structure of the dataset
+Checking the structure of the dataset
 ```{r}
 head(salaries)
 str(salaries)
@@ -51,17 +54,17 @@ str(salaries)
 Already we can see an issue that needs to be worked on. Several variables seem to supposedly be read in as factors. We will finish conducting checks on the dataset before converting said columns.
 
 
-#### Checking the summary of the dataset
+Checking the summary of the dataset
 ```{r}
 summary(salaries)
 ```
-#### Checking for null values
+Checking for null values
 ```{r}
 colSums(is.na(salaries))
 ```
 Fortunately, we have no null values so imputing is not required
 
-#### Checking potential factor columns for their unique values
+Checking potential factor columns for their unique values
 ```{r}
 factor_cols <- salaries[, c(2, 3, 4, 6, 8, 10, 11)]
 
@@ -77,13 +80,62 @@ Changing said variables to become factors
 salaries[, c(2, 3, 4, 6, 8, 10, 11)] <- lapply(factor_cols, factor)
 str(salaries)
 ```
-We can also drop the salary and salary_currency as we will just be using the salary_in_usd to simplify our steps. 
+We can also drop the salary as we will just be using the salary_in_usd to simplify our steps.
 
 ```{r}
-salaries <- salaries[, !(names(salaries) %in% c('salary_currency', 'salary'))]
+salaries <- salaries[, !(names(salaries) %in% c('salary_currency','salary'))]
 ```
 
-#### Visualization to search for patterns with regards to the salary_in_usd
+Visualization to search for patterns with regards to the salary_in_usd
 
+Prioritizing focus on work_year, experience_level, employment_type, job_title, employee_residence, remote_ratio, company_location, company_size
 
+```{r}
+yearplot <- ggplot(salaries, aes(x = work_year, y = salary_in_usd)) +
+  geom_point(color = "red", size = 3) +
+  labs(x = "Work Year", y = "Salary in USD", title = "Salary vs Work Year")
+
+# Boxplot using ggplot
+expplot <- ggplot(salaries, aes(x = experience_level, y = salary_in_usd)) +
+  geom_boxplot(fill = "skyblue") +
+  labs(x = "Experience Level", y = "Salary in USD", title = "Salary vs Experience Level")
+
+grid.arrange(yearplot, expplot, ncol = 2)
+```
+
++ We can see that the average salary in usd increases as the years go by, as the line congests further upwards towards the end.
++ Experience level does not really show much of a trend as it goes towards seniority, We can tell though that EX has the highest average and MI has the highest peak
+
+```{r}
+employplot <- ggplot(salaries, aes(x = employment_type, y = salary_in_usd)) +
+  geom_boxplot(fill = "skyblue") +
+  labs(x = "Employment Type", y = "Salary in USD", title = "Salary vs Employment Type")
+
+remoteplot <- ggplot(salaries, aes(x = remote_ratio, y = salary_in_usd)) +
+  geom_point(color = "red", size = 3, shape = 19) +
+  labs(x = "Remote Ratio", y = "Salary in USD", title = "Salary vs Remote Ratio")
+
+grid.arrange(employplot, remoteplot, ncol = 2)
+```
+
++ In employment type, FT has the highest average as well as higher peaks
++ Remote ratio consists of 0, 50 and 100. The highest points as well as average are in the order 0>100>50 
+
+```{r}
+usd_salary_by_size <- salaries%>%
+  group_by(company_size)%>%
+  summarise(Avg_sal=mean(salary_in_usd))
+
+sizeplot <- ggplot(usd_salary_by_size, aes(x=company_size, y=Avg_sal)) +
+  geom_col() +
+  labs(title='Avg Salary vs Company Size', x='Company Size', y='Average Salary in USD')
+
+residenceplot <- ggplot(salaries, aes(x = employee_residence, y = salary_in_usd)) +
+  geom_bar(stat = "summary", fun = "mean", fill = "skyblue") +
+  labs(x = "Residence", y = "Mean Salary in USD", title = "Mean Salary vs Residence") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+grid.arrange(sizeplot,residenceplot, ncol = 2)
+```
++ From this plot we can also see that medium sized companies pay the largest on average, followed by large then small
++ We can see that out of all the residences, IL has the largest mean salary by a huge margin. This may be alarming so we will have to keep an eye on it as it may be an inaccurate input
 
