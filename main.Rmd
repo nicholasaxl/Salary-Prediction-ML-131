@@ -40,7 +40,7 @@ library(gridExtra)
 options("max.print" = 5) # to prevent page number bloat
 ```
 
-# Part 1: Exploratory Data Analysis
+## Part 1: Exploratory Data Analysis
 
 Loading the dataset
 ```{r}
@@ -139,3 +139,40 @@ grid.arrange(sizeplot,residenceplot, ncol = 2)
 + From this plot we can also see that medium sized companies pay the largest on average, followed by large then small
 + We can see that out of all the residences, IL has the largest mean salary by a huge margin. This may be alarming so we will have to keep an eye on it as it may be an inaccurate input
 
+Plotting job_title/employee_residence/company_location would be way too congested due to overwhelming amounts of factor levels. I have decided to just show a summary of their statistics
+```{r}
+title_summary <- salaries %>%
+  group_by(job_title) %>%
+  summarise(
+    mean_salary = mean(salary_in_usd),
+    median_salary = median(salary_in_usd),
+    min_salary = min(salary_in_usd),
+    max_salary = max(salary_in_usd),
+    Q1 = quantile(salary_in_usd, probs = 0.25),
+    Q3 = quantile(salary_in_usd, probs = 0.75)
+  )
+residence_summary <- salaries %>%
+  group_by(employee_residence) %>%
+  summarise(
+    mean_salary = mean(salary_in_usd),
+    median_salary = median(salary_in_usd),
+    min_salary = min(salary_in_usd),
+    max_salary = max(salary_in_usd),
+    Q1 = quantile(salary_in_usd, probs = 0.25, na.rm = TRUE),
+    Q3 = quantile(salary_in_usd, probs = 0.75, na.rm = TRUE)
+  )
+location_summary <- salaries %>%
+  group_by(company_location) %>%
+  summarise(
+    mean_salary = mean(salary_in_usd),
+    median_salary = median(salary_in_usd),
+    min_salary = min(salary_in_usd),
+    max_salary = max(salary_in_usd),
+    Q1 = quantile(salary_in_usd, probs = 0.25, na.rm = TRUE),
+    Q3 = quantile(salary_in_usd, probs = 0.75, na.rm = TRUE)
+  )
+head(title_summary)
+head(residence_summary)
+head(location_summary)
+```
+## Part 2: Problem formulation and preparation for statistical learning algorithms

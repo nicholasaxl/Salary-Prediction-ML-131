@@ -536,6 +536,74 @@ largest on average, followed by large then small + We can see that out
 of all the residences, IL has the largest mean salary by a huge margin.
 This may be alarming so we will have to keep an eye on it as it may be
 an inaccurate input</p>
+<p>Plotting job_title/employee_residence/company_location would be way
+too congested due to overwhelming amounts of factor levels. I have
+decided to just show a summary of their statistics</p>
+<pre class="r"><code>title_summary &lt;- salaries %&gt;%
+  group_by(job_title) %&gt;%
+  summarise(
+    mean_salary = mean(salary_in_usd),
+    median_salary = median(salary_in_usd),
+    min_salary = min(salary_in_usd),
+    max_salary = max(salary_in_usd),
+    Q1 = quantile(salary_in_usd, probs = 0.25),
+    Q3 = quantile(salary_in_usd, probs = 0.75)
+  )
+residence_summary &lt;- salaries %&gt;%
+  group_by(employee_residence) %&gt;%
+  summarise(
+    mean_salary = mean(salary_in_usd),
+    median_salary = median(salary_in_usd),
+    min_salary = min(salary_in_usd),
+    max_salary = max(salary_in_usd),
+    Q1 = quantile(salary_in_usd, probs = 0.25, na.rm = TRUE),
+    Q3 = quantile(salary_in_usd, probs = 0.75, na.rm = TRUE)
+  )
+location_summary &lt;- salaries %&gt;%
+  group_by(company_location) %&gt;%
+  summarise(
+    mean_salary = mean(salary_in_usd),
+    median_salary = median(salary_in_usd),
+    min_salary = min(salary_in_usd),
+    max_salary = max(salary_in_usd),
+    Q1 = quantile(salary_in_usd, probs = 0.25, na.rm = TRUE),
+    Q3 = quantile(salary_in_usd, probs = 0.75, na.rm = TRUE)
+  )
+head(title_summary)</code></pre>
+<pre><code>## # A tibble: 6 × 7
+##   job_title        mean_salary median_salary min_salary max_salary     Q1     Q3
+##   &lt;fct&gt;                  &lt;dbl&gt;         &lt;dbl&gt;      &lt;int&gt;      &lt;int&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+## 1 3D Computer Vis…      21352.         15000       5409      50000 8.85e3 2.75e4
+## 2 AI Developer         136666.        108000       6304     300000 6.97e4 2.07e5
+## 3 AI Programmer         55000          55000      40000      70000 4.75e4 6.25e4
+## 4 AI Scientist         110121.         52500      12000     423834 3.11e4 2   e5
+## 5 Analytics Engin…     152369.        143860       7500     289800 1.17e5 1.85e5
+## 6 Applied Data Sc…     113726.         74159      20670     380000 5.11e4 1.45e5</code></pre>
+<pre class="r"><code>head(residence_summary)</code></pre>
+<pre><code>## # A tibble: 6 × 7
+##   employee_residence mean_salary median_salary min_salary max_salary     Q1
+##   &lt;fct&gt;                    &lt;dbl&gt;         &lt;dbl&gt;      &lt;int&gt;      &lt;int&gt;  &lt;dbl&gt;
+## 1 AE                     100000        115000       65000     120000 90000 
+## 2 AM                      50000         50000       50000      50000 50000 
+## 3 AR                      35500         39000       12000      60000 17250 
+## 4 AS                      32778.        32778.      20000      45555 26389.
+## 5 AT                      71126.        68060.      50000      91237 60567 
+## 6 AU                      77981.        75050       40000     150000 49209 
+## # ℹ 1 more variable: Q3 &lt;dbl&gt;</code></pre>
+<pre class="r"><code>head(location_summary)</code></pre>
+<pre><code>## # A tibble: 6 × 7
+##   company_location mean_salary median_salary min_salary max_salary     Q1     Q3
+##   &lt;fct&gt;                  &lt;dbl&gt;         &lt;dbl&gt;      &lt;int&gt;      &lt;int&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+## 1 AE                   100000        115000       65000     120000 90000  117500
+## 2 AL                    10000         10000       10000      10000 10000   10000
+## 3 AM                    50000         50000       50000      50000 50000   50000
+## 4 AR                    25000         13000       12000      50000 12500   31500
+## 5 AS                    29351         20000       18053      50000 19026.  35000
+## 6 AT                    71355.        68060.      50000      91237 61598.  85512</code></pre>
+</div>
+<div id="part-2-problem-formulation-and-preparation-for-statistical-learning-algorithms" class="section level1">
+<h1>Part 2: Problem formulation and preparation for statistical learning
+algorithms</h1>
 </div>
 
 
