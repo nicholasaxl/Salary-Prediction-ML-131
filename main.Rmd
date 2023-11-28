@@ -4,10 +4,9 @@ title: 'PSTAT 131 Final Project: Model comparison for predicting the salary of a
 author: "Nicholas Axl Andrian"
 date: "2023-11-23"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
-
 Dataset used: https://www.kaggle.com/datasets/arnabchaki/data-science-salaries-2023
 
 In this project, we will be fitting several different machine learning algorithms to find out which method of prediction is the most accurate in getting the predicted salary(in usd).
@@ -35,9 +34,6 @@ library(tree)
 library(tidyverse)
 library(ggplot2)
 library(gridExtra)
-
-
-options("max.print" = 5) # to prevent page number bloat
 ```
 
 ## Part 1: Exploratory Data Analysis
@@ -48,9 +44,13 @@ salaries <- read.csv("ds_salaries.csv")
 ```
 Checking the structure of the dataset
 ```{r}
+options("max.print" = 5) # to prevent page number bloat, remove for full output
 head(salaries)
+```
+```{r}
 str(salaries)
 ```
+
 Already we can see an issue that needs to be worked on. Several variables seem to supposedly be read in as factors. We will finish conducting checks on the dataset before converting said columns.
 
 
@@ -65,7 +65,7 @@ colSums(is.na(salaries))
 Fortunately, we have no null values so imputing is not required
 
 Checking potential factor columns for their unique values
-```{r}
+```{r, results = "hide"}
 factor_cols <- salaries[, c(2, 3, 4, 6, 8, 10, 11)]
 
 # finding unique values, referenced code from https://www.kaggle.com/code/abdulfaheem11/data-science-salaries-2023-analysis
@@ -76,14 +76,15 @@ sapply(factor_cols, function(col) unique(col))
 
 Changing said variables to become factors
 
-```{r}
+```{r, results = "hide"}
 salaries[, c(2, 3, 4, 6, 8, 10, 11)] <- lapply(factor_cols, factor)
 str(salaries)
 ```
-We can also drop the salary as we will just be using the salary_in_usd to simplify our steps.
+We can also drop the salary and salary_currency as we will just be using the salary_in_usd to simplify our steps.
+We will also drop the employee_residence, to put more focus onto the company_location instead.
 
 ```{r}
-salaries <- salaries[, !(names(salaries) %in% c('salary_currency','salary'))]
+salaries <- salaries[, !(names(salaries) %in% c('salary_currency','salary', 'employee_residence'))]
 ```
 
 Visualization to search for patterns with regards to the salary_in_usd
@@ -94,12 +95,9 @@ Prioritizing focus on work_year, experience_level, employment_type, job_title, e
 yearplot <- ggplot(salaries, aes(x = work_year, y = salary_in_usd)) +
   geom_point(color = "red", size = 3) +
   labs(x = "Work Year", y = "Salary in USD", title = "Salary vs Work Year")
-
-# Boxplot using ggplot
 expplot <- ggplot(salaries, aes(x = experience_level, y = salary_in_usd)) +
   geom_boxplot(fill = "skyblue") +
   labs(x = "Experience Level", y = "Salary in USD", title = "Salary vs Experience Level")
-
 grid.arrange(yearplot, expplot, ncol = 2)
 ```
 
@@ -110,11 +108,9 @@ grid.arrange(yearplot, expplot, ncol = 2)
 employplot <- ggplot(salaries, aes(x = employment_type, y = salary_in_usd)) +
   geom_boxplot(fill = "skyblue") +
   labs(x = "Employment Type", y = "Salary in USD", title = "Salary vs Employment Type")
-
 remoteplot <- ggplot(salaries, aes(x = remote_ratio, y = salary_in_usd)) +
   geom_point(color = "red", size = 3, shape = 19) +
   labs(x = "Remote Ratio", y = "Salary in USD", title = "Salary vs Remote Ratio")
-
 grid.arrange(employplot, remoteplot, ncol = 2)
 ```
 
@@ -129,50 +125,70 @@ usd_salary_by_size <- salaries%>%
 sizeplot <- ggplot(usd_salary_by_size, aes(x=company_size, y=Avg_sal)) +
   geom_col() +
   labs(title='Avg Salary vs Company Size', x='Company Size', y='Average Salary in USD')
-
-residenceplot <- ggplot(salaries, aes(x = employee_residence, y = salary_in_usd)) +
-  geom_bar(stat = "summary", fun = "mean", fill = "skyblue") +
-  labs(x = "Residence", y = "Mean Salary in USD", title = "Mean Salary vs Residence") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-
-grid.arrange(sizeplot,residenceplot, ncol = 2)
+sizeplot
 ```
 + From this plot we can also see that medium sized companies pay the largest on average, followed by large then small
-+ We can see that out of all the residences, IL has the largest mean salary by a huge margin. This may be alarming so we will have to keep an eye on it as it may be an inaccurate input
 
-Plotting job_title/employee_residence/company_location would be way too congested due to overwhelming amounts of factor levels. I have decided to just show a summary of their statistics
+Tabling the 6 highest and lowest paying jobs
 ```{r}
-title_summary <- salaries %>%
-  group_by(job_title) %>%
-  summarise(
-    mean_salary = mean(salary_in_usd),
-    median_salary = median(salary_in_usd),
-    min_salary = min(salary_in_usd),
-    max_salary = max(salary_in_usd),
-    Q1 = quantile(salary_in_usd, probs = 0.25),
-    Q3 = quantile(salary_in_usd, probs = 0.75)
-  )
-residence_summary <- salaries %>%
-  group_by(employee_residence) %>%
-  summarise(
-    mean_salary = mean(salary_in_usd),
-    median_salary = median(salary_in_usd),
-    min_salary = min(salary_in_usd),
-    max_salary = max(salary_in_usd),
-    Q1 = quantile(salary_in_usd, probs = 0.25, na.rm = TRUE),
-    Q3 = quantile(salary_in_usd, probs = 0.75, na.rm = TRUE)
-  )
-location_summary <- salaries %>%
-  group_by(company_location) %>%
-  summarise(
-    mean_salary = mean(salary_in_usd),
-    median_salary = median(salary_in_usd),
-    min_salary = min(salary_in_usd),
-    max_salary = max(salary_in_usd),
-    Q1 = quantile(salary_in_usd, probs = 0.25, na.rm = TRUE),
-    Q3 = quantile(salary_in_usd, probs = 0.75, na.rm = TRUE)
-  )
-head(title_summary)
-head(residence_summary)
-head(location_summary)
+options("max.print" = 6)
+top_6_job_salaries<-salaries%>%
+  group_by(job_title)%>%
+  summarise(Avg_Sal=mean(salary_in_usd))%>%
+  arrange(desc(Avg_Sal))%>%
+  head()
+top_6_job_salaries
+bottom_6_job_salaries<-salaries%>%
+  group_by(job_title)%>%
+  summarise(Avg_Sal=mean(salary_in_usd))%>%
+  arrange(Avg_Sal)%>%
+  head()
+bottom_6_job_salaries
 ```
+Plotting the 6 highest and lowest paying jobs
+```{r}
+top6jobplot <- ggplot(top_6_job_salaries, aes(x = reorder(job_title, Avg_Sal), y = Avg_Sal)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Top 6 Job Salaries", x = "Job Title", y = "Average Salary (USD)")
+bot6jobplot <- ggplot(bottom_6_job_salaries, aes(x = reorder(job_title, Avg_Sal), y = Avg_Sal)) +
+  geom_bar(stat = "identity", fill = "salmon") +
+  labs(title = "Bottom 6 Job Salaries", x = "Job Title", y = "Average Salary (USD)")
+top6jobplot <- top6jobplot + theme(axis.text.x = element_text(angle = 90, vjust = 0.75, size=7, hjust=1))
+bot6jobplot <- bot6jobplot + theme(axis.text.x = element_text(angle = 90, vjust = 0.75, size=7, hjust=1))
+grid.arrange(top6jobplot,bot6jobplot, ncol = 2)
+```
++ We can tell that the data science tech lead job has the highest average pay by far
++ we can also tell that the power bi developer has the lowest pay out of all the jobs
+
+Tabling the 6 highest and lowest paying company locations 
+```{r}
+top_6_loc<-salaries%>%
+  group_by(company_location)%>%
+  summarise(Avg_Sal=mean(salary_in_usd))%>%
+  arrange(desc(Avg_Sal))%>%
+  head()
+top_6_loc
+bottom_6_loc<-salaries%>%
+  group_by(company_location)%>%
+  summarise(Avg_Sal=mean(salary_in_usd))%>%
+  arrange(Avg_Sal)%>%
+  head()
+bottom_6_loc
+```
+
+Plotting the 6 highest and lowest paying company locations
+```{r}
+top6locplot <- ggplot(top_6_loc, aes(x = reorder(company_location, Avg_Sal), y = Avg_Sal)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Top 6 Company Locations", x = "Location Code", y = "Average Salary (USD)")
+bot6locplot <- ggplot(bottom_6_loc, aes(x = reorder(company_location, Avg_Sal), y = Avg_Sal)) +
+  geom_bar(stat = "identity", fill = "salmon") +
+  labs(title = "Bottom 6 Company Locations", x = "Location Code", y = "Average Salary (USD)")
+top6resplot <- top6locplot + theme(axis.text.x = element_text(angle = 90, vjust = 0.75, size=7, hjust=1))
+bot6resplot <- bot6locplot + theme(axis.text.x = element_text(angle = 90, vjust = 0.75, size=7, hjust=1))
+grid.arrange(top6locplot,bot6locplot, ncol = 2)
+```
++ It seems that IL has the highest paying jobs when it comes to company location
++ MK has the lowest paying job out of all the locations by far
+
 ## Part 2: Problem formulation and preparation for statistical learning algorithms
