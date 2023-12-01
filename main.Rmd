@@ -245,7 +245,7 @@ head(salaries)
 ```
 Due to a huge amount of levels in factors, our training dataset may not have the columns present in the testing dataset and vice versa. To prevent this, I will create a new data set where I use one-hot encoding on those categorical variables
 
-```{r, results='hide'}
+```{r, results='hide', message = FALSE}
 library(caret)
 
 cat_cols <- c("job_title", "company_location")
@@ -258,20 +258,20 @@ head(encoded_salaries)
 ```
 
   
-Preparing the training and testing data set with Train/Test/Split
+Preparing the encoded training and testing data set with Train/Test/Split
 ```{r, results='hide'}
 set.seed(123)
-nrow(encoded_salaries) #data has 3755 observations
-# initial split (70-30)
-train = sample(1:nrow(encoded_salaries), 3003)
-salaries.train = encoded_salaries[train, ]
-salaries.test = encoded_salaries[-train, ]
+nrow(encoded_salaries)
+encoded_train = sample(1:nrow(encoded_salaries), 3003)
+encoded_salaries_train = encoded_salaries[encoded_train, ] 
+encoded_salaries_test = encoded_salaries[-encoded_train, ]
 
-YTrain = salaries.train$salary_in_usd
-XTrain = salaries.train %>% select(-salary_in_usd)
+encoded_YTrain = encoded_salaries_train$salary_in_usd
+encoded_XTrain = encoded_salaries_train %>% select(-salary_in_usd)
 
-YTest = salaries.test$salary_in_usd
-XTest = salaries.test %>% select(-salary_in_usd)
+encoded_YTest = encoded_salaries_test$salary_in_usd
+encoded_XTest = encoded_salaries_test %>% select(-salary_in_usd)
+
 ```
 
 
@@ -286,8 +286,8 @@ set.seed(123)
 
 Using log transformation on the response variable to follow a normal
 ```{r}
-log.train <- salaries.train
-log.train$salary_in_usd <- log1p(salaries.train$salary_in_usd)
+log.train <- encoded_salaries_train
+log.train$salary_in_usd <- log1p(encoded_salaries_train$salary_in_usd)
 ```
 
 Fitting the model
@@ -315,7 +315,7 @@ checking non log'd predictions
 
 ```{r}
 options(max.print = 6)
-comparison_df <- data.frame(Actual = salaries.train$salary_in_usd, Predicted = exp(predicted_values))
+comparison_df <- data.frame(Actual = encoded_salaries_train$salary_in_usd, Predicted = exp(predicted_values))
 comparison_df
 ```
 Creating the non log plot
@@ -345,15 +345,15 @@ mse_log #0.1206688
 MSE of the non log training response
 ```{r, results='hide'}
 predicted_values_nonlog <- exp(predict(lmod))
-residuals_nonlog <- salaries.train$salary_in_usd - predicted_values_nonlog
+residuals_nonlog <- encoded_salaries_train$salary_in_usd - predicted_values_nonlog
 mse_nonlog <- mean(residuals_nonlog^2)
 mse_nonlog #2110682376
 ```
 Predicting the test data & its MSE using the model we built
 
-```{r, results='hide'}
-lmod_test_predicted <- predict(lmod, newdata = XTest)
-mse_test <- mean((lmod_test_predicted - YTest)^2)
+```{r, results='hide', message = FALSE}
+lmod_test_predicted <- predict(lmod, newdata = encoded_XTest)
+mse_test <- mean((lmod_test_predicted - encoded_YTest)^2)
 mse_test #23967797489
 ```
 
