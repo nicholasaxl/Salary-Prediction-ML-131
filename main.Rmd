@@ -4,8 +4,8 @@ title: 'PSTAT 131 Final Project: Model comparison for predicting the salary of a
 author: "Nicholas Axl Andrian"
 date: "2023-11-23"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
   word_document: default
 ---
 Dataset used: https://www.kaggle.com/datasets/arnabchaki/data-science-salaries-2023
@@ -243,24 +243,40 @@ I want to start off by deciding that the salary_currency and salary are not sign
 salaries <- subset(salaries, select = -c(salary, salary_currency, employee_residence))
 head(salaries)
 ```
+Due to a huge amount of levels in factors, our training dataset may not have the columns present in the testing dataset and vice versa. To prevent this, I will create a new data set where I use one-hot encoding on those categorical variables
+
+```{r, results='hide'}
+library(caret)
+
+cat_cols <- c("job_title", "company_location")
+formula <- as.formula(paste("~ ."))
+encoded_data <- dummyVars(formula, data = salaries[, cat_cols])
+encoded_salaries <- predict(encoded_data, newdata = salaries)
+encoded_salaries <- cbind(salaries, encoded_salaries)
+encoded_salaries <- subset(encoded_salaries, select = -c(job_title, company_location))
+head(encoded_salaries)
+```
 
   
 Preparing the training and testing data set with Train/Test/Split
 ```{r, results='hide'}
 set.seed(123)
-nrow(salaries) #data has 3755 observations
+nrow(encoded_salaries) #data has 3755 observations
 # initial split (70-30)
-train = sample(1:nrow(salaries), 2628)
-salaries.train = salaries[train, ]
-salaries.test = salaries[-train, ]
+train = sample(1:nrow(encoded_salaries), 3003)
+salaries.train = encoded_salaries[train, ]
+salaries.test = encoded_salaries[-train, ]
 
 YTrain = salaries.train$salary_in_usd
 XTrain = salaries.train %>% select(-salary_in_usd)
 
 YTest = salaries.test$salary_in_usd
-YTest = salaries.test %>% select(-salary_in_usd)
+XTest = salaries.test %>% select(-salary_in_usd)
 ```
-### K-NN Regression (one-hot encoding)
+
+
+### K-NN Regression
+
 ```{r}
 set.seed(123)
 ```
@@ -316,7 +332,7 @@ Displaying the 2 plots
 ```{r}
 grid.arrange(gg_comparison_log,gg_comparison, ncol = 2)
 ```
-Getting R^2, Mean absolute error and Mean Squared Error for the log response
+Getting R^2, Mean absolute error and Mean Squared Error for the log training response
 ```{r, results='hide'}
 rsquared_log <- summary(lmod)$r.squared
 residuals_log <- residuals(lmod)
@@ -326,11 +342,20 @@ rsquared_log #0.6678302
 mae_log #0.2639758
 mse_log #0.1206688
 ```
-MSE of the non log response
+MSE of the non log training response
 ```{r, results='hide'}
 predicted_values_nonlog <- exp(predict(lmod))
 residuals_nonlog <- salaries.train$salary_in_usd - predicted_values_nonlog
 mse_nonlog <- mean(residuals_nonlog^2)
 mse_nonlog #2110682376
 ```
+Predicting the test data & its MSE using the model we built
+
+```{r, results='hide'}
+lmod_test_predicted <- predict(lmod, newdata = XTest)
+mse_test <- mean((lmod_test_predicted - YTest)^2)
+mse_test #23967797489
+```
+
+
 Overall, although we are able to fit the response variable quite well into a linear model thanks to the logarithmic transformation, the overall prediction is not very good judging from the very high MSE we get. This is probably due to the dataset mostly only having categorical predictor variables (factors with 70+ levels), making it really bad for fitting a linear model. 
