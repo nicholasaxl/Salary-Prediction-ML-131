@@ -6,6 +6,7 @@ date: "2023-11-23"
 output:
   html_document: default
   pdf_document: default
+  word_document: default
 ---
 Dataset used: https://www.kaggle.com/datasets/arnabchaki/data-science-salaries-2023
 
@@ -19,7 +20,7 @@ About the data set's variables (excerpt from the kaggle site)
 + job_title: The role worked in during the year.
 + salary: The total gross salary amount paid.
 + salary_currency: The currency of the salary paid as an ISO 4217 currency code.
-+ salaryinusd: The salary in USD
++ salary_in_usd: The salary in USD
 + employee_residence: Employee's primary country of residence in during the work + year as an ISO 3166 country code.
 + remote_ratio: The overall amount of work done remotely
 + company_location: The country of the employer's main office or contracting branch
@@ -34,20 +35,22 @@ library(tree)
 library(tidyverse)
 library(ggplot2)
 library(gridExtra)
+library(class)
+library(FNN)
+library(tibble)
+library(recipes)
 ```
 
 ## Part 1: Exploratory Data Analysis
 
 Loading the dataset
-```{r}
+```{r, results='hide'}
 salaries <- read.csv("ds_salaries.csv")
-```
-Checking the structure of the dataset
-```{r}
-options("max.print" = 5) # to prevent page number bloat, remove for full output
 head(salaries)
 ```
-```{r}
+
+Checking the structure of the dataset
+```{r, results='hide'}
 str(salaries)
 ```
 
@@ -55,7 +58,7 @@ Already we can see an issue that needs to be worked on. Several variables seem t
 
 
 Checking the summary of the dataset
-```{r}
+```{r, results='hide'}
 summary(salaries)
 ```
 Checking for null values
@@ -66,7 +69,7 @@ Fortunately, we have no null values so imputing is not required
 
 Checking potential factor columns for their unique values
 ```{r, results = "hide"}
-factor_cols <- salaries[, c(2, 3, 4, 6, 8, 10, 11)]
+factor_cols <- salaries[, c(1, 2, 3, 4, 6, 8, 10, 11)]
 
 # finding unique values, referenced code from https://www.kaggle.com/code/abdulfaheem11/data-science-salaries-2023-analysis
 
@@ -77,14 +80,8 @@ sapply(factor_cols, function(col) unique(col))
 Changing said variables to become factors
 
 ```{r, results = "hide"}
-salaries[, c(2, 3, 4, 6, 8, 10, 11)] <- lapply(factor_cols, factor)
+salaries[, c(1, 2, 3, 4, 6, 8, 10, 11)] <- lapply(factor_cols, factor)
 str(salaries)
-```
-We can also drop the salary and salary_currency as we will just be using the salary_in_usd to simplify our steps.
-We will also drop the employee_residence, to put more focus onto the company_location instead.
-
-```{r}
-salaries <- salaries[, !(names(salaries) %in% c('salary_currency','salary', 'employee_residence'))]
 ```
 
 Visualization to search for patterns with regards to the salary_in_usd
@@ -113,10 +110,42 @@ remoteplot <- ggplot(salaries, aes(x = remote_ratio, y = salary_in_usd)) +
   labs(x = "Remote Ratio", y = "Salary in USD", title = "Salary vs Remote Ratio")
 grid.arrange(employplot, remoteplot, ncol = 2)
 ```
-
 + In employment type, FT has the highest average as well as higher peaks
 + Remote ratio consists of 0, 50 and 100. The highest points as well as average are in the order 0>100>50 
 
+
+
+```{r}
+salaryplot <- ggplot(salaries, aes(x = salary, y = salary_in_usd)) +
+  geom_point() +
+  labs(title = "Salary vs. Salary in USD", x = "Salary", y = "Salary in USD")
+
+# Salary vs. Salary Currency plot
+currencyplot <- ggplot(salaries, aes(x = salary_in_usd, y = salary_currency)) +
+  geom_point() +
+  labs(title = "Salary(USD) vs Currency", x = "Salary", y = "Salary Currency")
+
+# Combine plots into a grid using facet_grid
+grid.arrange(salaryplot, currencyplot, ncol = 2)
+```
++ In the first plot, we see that there is a point that is way further to the right than any of the other points. We will have to check that out right after this
++ On the 2nd plot, aside from seeing that we might have the most observations in USD, we can also see that it has the highest salary just based on numbers
+
+Checking out the "outlier" observation
+
+```{r}
+max(salaries$salary)
+outlierindex <- which(salaries$salary == max(salaries$salary))
+salaries$salary_currency[outlierindex]
+```
+It seems to be an observation from the CLP currency. and connecting it back to the graph, we can see that it also only has that one observation. I will deem it insignificant for now, to avoid a potential leverage point affecting the models I will be removing said observation.
+
+```{r}
+salaries <- salaries[-outlierindex, ]
+```
+
+
+Plot showing salary vs Company Size
 ```{r}
 usd_salary_by_size <- salaries%>%
   group_by(company_size)%>%
@@ -130,8 +159,7 @@ sizeplot
 + From this plot we can also see that medium sized companies pay the largest on average, followed by large then small
 
 Tabling the 6 highest and lowest paying jobs
-```{r}
-options("max.print" = 6)
+```{r, results='hide'}
 top_6_job_salaries<-salaries%>%
   group_by(job_title)%>%
   summarise(Avg_Sal=mean(salary_in_usd))%>%
@@ -161,7 +189,7 @@ grid.arrange(top6jobplot,bot6jobplot, ncol = 2)
 + we can also tell that the power bi developer has the lowest pay out of all the jobs
 
 Tabling the 6 highest and lowest paying company locations 
-```{r}
+```{r, results='hide'}
 top_6_loc<-salaries%>%
   group_by(company_location)%>%
   summarise(Avg_Sal=mean(salary_in_usd))%>%
@@ -191,4 +219,118 @@ grid.arrange(top6locplot,bot6locplot, ncol = 2)
 + It seems that IL has the highest paying jobs when it comes to company location
 + MK has the lowest paying job out of all the locations by far
 
-## Part 2: Problem formulation and preparation for statistical learning algorithms
+## Part 2: Problem formulation and discussion of statistical learning algorithms used
+
+The main goal of this project, as mentioned before is to compare several statistical learning methods in predicting the salary given the parameters. We will be focusing on the following methods:
+
++ K-Nearest Neighbors
+  + Using K-NN means
+  + Scaling the predictors
++ Linear Regression
+  + Test with adding polynomials, etc
++ Ridge and LASSO Regression
+  + Using CV methods to find the best lambda
+  + Conducting variable selection with LASSO
++ Regression Trees
+  + Decision Trees
+  + Random-Forest
+  + Boosting
++ Support Vector Machines
+  + Testing SVMs with different OSH methods
+  
+I want to start off by deciding that the salary_currency and salary are not significant to our prediction of the salary_in_usd. Similarly for employee_residence, as the company_location should be sufficient
+```{r, results='hide'}
+salaries <- subset(salaries, select = -c(salary, salary_currency, employee_residence))
+head(salaries)
+```
+
+  
+Preparing the training and testing data set with Train/Test/Split
+```{r, results='hide'}
+set.seed(123)
+nrow(salaries) #data has 3755 observations
+# initial split (70-30)
+train = sample(1:nrow(salaries), 2628)
+salaries.train = salaries[train, ]
+salaries.test = salaries[-train, ]
+
+YTrain = salaries.train$salary_in_usd
+XTrain = salaries.train %>% select(-salary_in_usd)
+
+YTest = salaries.test$salary_in_usd
+YTest = salaries.test %>% select(-salary_in_usd)
+```
+### K-NN Regression (one-hot encoding)
+```{r}
+set.seed(123)
+```
+
+
+### Linear Regression
+
+Using log transformation on the response variable to follow a normal
+```{r}
+log.train <- salaries.train
+log.train$salary_in_usd <- log1p(salaries.train$salary_in_usd)
+```
+
+Fitting the model
+```{r, results='hide'}
+lmod <- lm(salary_in_usd ~ ., log.train)
+summary(lmod)
+```
+
+Checking Predictions
+```{r}
+options(max.print = 6)
+predicted_values <- predict(lmod)
+comparison_log_df <- data.frame(Actual = log.train$salary_in_usd, Predicted = predicted_values)
+comparison_log_df
+```
+Creating plot of predicted values vs the actual values (displayed with the non log plot below)
+```{r, results='hide'}
+gg_comparison_log <- ggplot(comparison_log_df, aes(x = log.train$salary_in_usd, y = predicted_values)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") + 
+  labs(title = "Log Predicted vs Log Actual", x = "Log Actual", y = "Log Predicted")
+```
+
+checking non log'd predictions
+
+```{r}
+options(max.print = 6)
+comparison_df <- data.frame(Actual = salaries.train$salary_in_usd, Predicted = exp(predicted_values))
+comparison_df
+```
+Creating the non log plot
+
+```{r, results='hide'}
+gg_comparison <- ggplot(comparison_df, aes(x = Actual, y = Predicted)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
+  labs(title = "Predicted vs Actual", x = "Actual", y = "Predicted")
+```
+
+Displaying the 2 plots
+
+```{r}
+grid.arrange(gg_comparison_log,gg_comparison, ncol = 2)
+```
+Getting R^2, Mean absolute error and Mean Squared Error for the log response
+```{r, results='hide'}
+rsquared_log <- summary(lmod)$r.squared
+residuals_log <- residuals(lmod)
+mae_log <- mean(abs(residuals_log))
+mse_log <- mean(residuals_log^2)
+rsquared_log #0.6678302
+mae_log #0.2639758
+mse_log #0.1206688
+```
+MSE of the non log response
+```{r, results='hide'}
+predicted_values_nonlog <- exp(predict(lmod))
+residuals_nonlog <- salaries.train$salary_in_usd - predicted_values_nonlog
+mse_nonlog <- mean(residuals_nonlog^2)
+mse_nonlog #2110682376
+```
+Overall, although we are able to fit the response variable quite well into a linear model thanks to the logarithmic transformation, the overall prediction is not very good judging from the very high MSE we get. This is probably due to the dataset mostly only having categorical predictor variables (factors with 70+ levels), making it really bad for fitting a linear model. 
