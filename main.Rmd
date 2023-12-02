@@ -41,6 +41,31 @@ library(tibble)
 library(recipes)
 ```
 
+PSTAT 131 helper for Cross Validation
+
+```{r}
+do.chunk <- function(chunkid, folddef, Xdat, Ydat, ...){
+# Get training index
+train = (folddef!=chunkid)
+# Get training set by the above index
+Xtr = Xdat[train,]
+# Get responses in training set
+Ytr = Ydat[train]
+# Get validation set
+Xvl = Xdat[!train,]
+# Get responses in validation set
+Yvl = Ydat[!train]
+# Predict training labels
+predYtr = knn(train=Xtr, test=Xtr, cl=Ytr, ...)
+# Predict validation labels
+predYvl = knn(train=Xtr, test=Xvl, cl=Ytr, ...)
+data.frame(fold = chunkid,
+train.error = mean(predYtr != Ytr), # Training error for each fold
+val.error = mean(predYvl != Yvl)) # Validation error for each fold
+}
+```
+
+
 ## Part 1: Exploratory Data Analysis
 
 Loading the dataset
@@ -271,16 +296,52 @@ encoded_XTrain = encoded_salaries_train %>% select(-salary_in_usd)
 
 encoded_YTest = encoded_salaries_test$salary_in_usd
 encoded_XTest = encoded_salaries_test %>% select(-salary_in_usd)
-
 ```
 
 
 ### K-NN Regression
 
-```{r}
+We need to encode all of the categorical variables for this. To do so, create a new dataset just for the KNN's use
+```{r, results='hide'}
+cat_cols_2 <- c("job_title", "company_location", "experience_level", "employment_type", "company_size", "work_year")
+formula <- as.formula(paste("~ ."))
+encoded_data2 <- dummyVars(formula, data = salaries[, cat_cols])
+encoded_salaries2 <- predict(encoded_data2, newdata = salaries)
+encoded_salaries2 <- cbind(salaries, encoded_salaries2)
+encoded_salaries2 <- subset(encoded_salaries2, select = -c(job_title, company_location, experience_level, employment_type, company_size, work_year))
+
 set.seed(123)
+nrow(encoded_salaries2)
+encoded_train2 = sample(1:nrow(encoded_salaries2), 3003)
+knn_salaries_train = encoded_salaries2[encoded_train2, ] 
+knn_salaries_test = encoded_salaries2[-encoded_train2, ]
+
+knn_YTrain = knn_salaries_train$salary_in_usd
+knn_XTrain = knn_salaries_train %>% select(-salary_in_usd)
+
+knn_YTest = knn_salaries_test$salary_in_usd
+knn_XTest = knn_salaries_test %>% select(-salary_in_usd)
+
+head(knn_YTrain)
 ```
 
+Training the reggresor using the encoded training set, for now we will use k=10, decide afterwards if it is worth spending time on cross-validation with this method.
+```{r, results='hide'}
+options(max.print = 1000)
+set.seed(123)
+pred_YTrain = knn.reg(train=knn_XTrain, test=knn_XTrain, y=knn_YTrain, k=10)
+```
+
+Calculating the Training MSE
+```{r, results='hide'}
+mean((pred_YTrain$pred - knn_YTrain)^2) #3065374515
+```
+Calculating test MSE
+```{r, results='hide'}
+pred.YTest = knn.reg(train=knn_XTrain, test=knn_XTest, y=knn_YTrain, k=10)
+mean((pred.YTest$pred - knn_YTest)^2) #3544608428
+```
+After some thought and considerations, I believe that the KNN regression method is not worth for this sort of data set. Firstly, the original data set is full of categorical variables, we were only able to fit it into the model after encoding basically everything. Due to this, our training and test MSE seems to be very high. (train mse stays, test mse lowers as k goes from 1 to 10 which is an interesting connection) Visualization is inaccurate too due to KNN regression visualizations only being able to be graphed with 1 response, and in this case the only variable I can graph on would be the work_year, which wouldn't really show anything. Due to the above reasons, I will not be spending time in tuning the lambda for said method.
 
 ### Linear Regression
 
