@@ -4,8 +4,8 @@ title: 'PSTAT 131 Final Project: Model comparison for predicting the salary of a
 author: "Nicholas Axl Andrian"
 date: "2023-11-23"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
   word_document: default
 ---
 Dataset used: https://www.kaggle.com/datasets/arnabchaki/data-science-salaries-2023
@@ -39,6 +39,7 @@ library(class)
 library(FNN)
 library(tibble)
 library(recipes)
+library(maptree)
 ```
 
 PSTAT 131 helper for Cross Validation
@@ -249,13 +250,7 @@ grid.arrange(top6locplot,bot6locplot, ncol = 2)
 The main goal of this project, as mentioned before is to compare several statistical learning methods in predicting the salary given the parameters. We will be focusing on the following methods:
 
 + K-Nearest Neighbors
-  + Using K-NN means
-  + Scaling the predictors
 + Linear Regression
-  + Test with adding polynomials, etc
-+ Ridge and LASSO Regression
-  + Using CV methods to find the best lambda
-  + Conducting variable selection with LASSO
 + Regression Trees
   + Decision Trees
   + Random-Forest
@@ -286,7 +281,6 @@ head(encoded_salaries)
 Preparing the encoded training and testing data set with Train/Test/Split
 ```{r, results='hide'}
 set.seed(123)
-nrow(encoded_salaries)
 encoded_train = sample(1:nrow(encoded_salaries), 3003)
 encoded_salaries_train = encoded_salaries[encoded_train, ] 
 encoded_salaries_test = encoded_salaries[-encoded_train, ]
@@ -298,6 +292,7 @@ encoded_YTest = encoded_salaries_test$salary_in_usd
 encoded_XTest = encoded_salaries_test %>% select(-salary_in_usd)
 ```
 
+## Part 3: Model Fitting
 
 ### K-NN Regression
 
@@ -341,9 +336,13 @@ Calculating test MSE
 pred.YTest = knn.reg(train=knn_XTrain, test=knn_XTest, y=knn_YTrain, k=10)
 mean((pred.YTest$pred - knn_YTest)^2) #3544608428
 ```
+Our MSE is very high due to the curse of dimensionality. When we use OHE, we make the predictor count very high due to the amount of added variables that K-NN will take into consideration, thus affecting the overall prediction negatively.
+
 After some thought and considerations, I believe that the KNN regression method is not worth for this sort of data set. Firstly, the original data set is full of categorical variables, we were only able to fit it into the model after encoding basically everything. Due to this, our training and test MSE seems to be very high. (train mse stays, test mse lowers as k goes from 1 to 10 which is an interesting connection) Visualization is inaccurate too due to KNN regression visualizations only being able to be graphed with 1 response, and in this case the only variable I can graph on would be the work_year, which wouldn't really show anything. Due to the above reasons, I will not be spending time in tuning the lambda for said method.
 
 ### Linear Regression
+
+Before going into the code below, I need to state that due to the large amount of factor levels, we had to use the encoded dataset as when I tried running the test data from a model uding the training data, it was shown that some factor levels were found in the testing data that arent in the training data, thus leading to error messages and inability to function.
 
 Using log transformation on the response variable to follow a normal
 ```{r}
@@ -419,4 +418,124 @@ mse_test #23967797489
 ```
 
 
-Overall, although we are able to fit the response variable quite well into a linear model thanks to the logarithmic transformation, the overall prediction is not very good judging from the very high MSE we get. This is probably due to the dataset mostly only having categorical predictor variables (factors with 70+ levels), making it really bad for fitting a linear model. 
+Overall, although we are able to fit the response variable quite well into a linear model thanks to the logarithmic transformation, the overall prediction is not very good judging from the very high MSE we get. This is probably due to the dataset mostly only having categorical predictor variables (factors with 70+ levels), making it really bad for fitting a linear model. Multicolinearity could also affect this since we had to use encoding, thus creating a lot more variables that could be collinear to each other.
+
+### Tree based methods
+
+Apparently R has a limitation of 32 levels for factors when trying to put them into a decision tree. 
+
+Checking the frequencies of the factors with a large amount of levels
+```{r, results='hide'}
+options(max.print = 1000)
+
+freq_table1 <- table(salaries$job_title)
+freq_table2 <- table(salaries$company_location)
+sorted_freq_table1 <- sort(freq_table1)
+sorted_freq_table2 <- sort(freq_table2)
+N <- 100
+
+bottom_freq1 <- head(sorted_freq_table1, n = N)
+bottom_freq2 <- head(sorted_freq_table2, n = N)
+num_unique_levels1 <- length(unique(salaries$job_title))
+num_unique_levels2 <- length(unique(salaries$company_location))
+
+bottom_freq1
+bottom_freq2
+num_unique_levels1 #93
+num_unique_levels2 #71
+```
+
+A method we could use to circumvent this could be the PCT method where we cut off a percentage of the unlikely levels and group them as other. 
+
+PCT for job_title
+```{r, results='hide'}
+options(max.print = 1000)
+
+job_title_freq <- table(salaries$job_title)
+
+num_top_job_titles <- 31
+
+top_job_titles <- names(sort(job_title_freq, decreasing = TRUE))[1:num_top_job_titles]
+
+salaries$job_title <- ifelse(!(salaries$job_title %in% top_job_titles), "Others", as.character(salaries$job_title))
+
+salaries$job_title <- factor(salaries$job_title, levels = c(top_job_titles, "Others"))
+
+table(salaries$job_title)
+length(unique(salaries$job_title))
+```
+
+PCT for company_location
+```{r, results='hide'}
+options(max.print = 1000)
+
+company_location_freq <- table(salaries$company_location)
+
+num_top_company_location <- 31
+
+top_company_location <- names(sort(company_location_freq, decreasing = TRUE))[1:num_top_company_location]
+
+salaries$company_location <- ifelse(!(salaries$company_location %in% top_company_location), "Others", as.character(salaries$company_location))
+
+salaries$company_location <- factor(salaries$company_location, levels = c(top_company_location, "Others"))
+
+table(salaries$company_location)
+length(unique(salaries$company_location))
+```
+
+Preparing the non-encoded training and testing data set with Train/Test/Split
+```{r, results='hide'}
+set.seed(123)
+salaries_count = sample(1:nrow(salaries), 3003)
+salaries_train = salaries[salaries_count, ] 
+salaries_test = salaries[-salaries_count, ]
+
+YTrain = salaries_train$salary_in_usd
+XTrain = salaries_train %>% select(-salary_in_usd)
+
+YTest = salaries_test$salary_in_usd
+XTest = salaries_test %>% select(-salary_in_usd)
+```
+
+Fit the regression tree
+```{r, results='hide'}
+tree_salaries <- tree(salary_in_usd ~ ., data = salaries_train, split = "deviance")
+summary(tree_salaries)
+```
+
+Visualize the tree
+```{r}
+draw.tree(tree_salaries, nodeinfo=TRUE, cex = 0.8)
+```
+Total deviance explained = 37.7 %. Here, it doesn't seem like we need to prune the tree, due to how less complex it is given the dataset with variables holding a large factor level. 
+
+Tabling real values in salaries_train vs the predicted tree values
+
+```{r, results='hide'}
+predicted_values1 <- predict(tree_salaries, newdata = salaries_train)
+
+comparison_table1 <- data.frame(Real = salaries_train$salary_in_usd, Predicted = predicted_values1)
+comparison_table1
+```
+Similarly for the training set
+```{r, results='hide'}
+predicted_values2 <- predict(tree_salaries, newdata = salaries_test)
+
+comparison_table2 <- data.frame(Real = salaries_test$salary_in_usd, Predicted = predicted_values2)
+comparison_table2
+```
+
+
+Train and Test MSE calculation
+```{r, results='hide'}
+residuals1 <- predicted_values1 - salaries_train$salary_in_usd
+train_mse1 <- mean(residuals1^2)
+residuals2 <- predicted_values2 - salaries_test$salary_in_usd
+train_mse2 <- mean(residuals2^2)
+
+train_mse1 #2609732117
+train_mse2 #2941293738
+```
+We notice that with a regular simple decision tree, that other variables like remote_ratio, company_size and employment type were not fit into the decision. It also seems that through the visualization, factors that have a ton of levels did not split as much as expected. This causes a very small amount of possible responses which although helps with overfitting, makes the response less accurate. Still, the MSEs were way lower than those from the regression methods by 2 digits. To try and make a more complex structure, we will try other methods like random-forest and XGBoosting
+
+
