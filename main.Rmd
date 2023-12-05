@@ -464,11 +464,9 @@ comparison_table2 <- data.frame(Real = encoded_salaries_test$salary_in_usd, Pred
 ```
 Visualization plot
 ```{r}
-library(ggplot2)
-
 plot1 <- ggplot(comparison_table1, aes(x = Real, y = Predicted)) +
   geom_point() +
-  ggtitle("Comparison Plot - Training Data") +
+  ggtitle("Tree Plot - Training Data") +
   xlab("Real Values") +
   ylab("Predicted Values") +
   geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") +
@@ -476,7 +474,7 @@ plot1 <- ggplot(comparison_table1, aes(x = Real, y = Predicted)) +
 
 plot2 <- ggplot(comparison_table2, aes(x = Real, y = Predicted)) +
   geom_point() +
-  ggtitle("Comparison Plot - Test Data") +
+  ggtitle("Tree Plot - Test Data") +
   xlab("Real Values") +
   ylab("Predicted Values") +
   geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") +
@@ -501,13 +499,14 @@ We notice that with a regular simple decision tree, that other variables like re
 
 #### Random Forest Regression Trees
 
-fitting the tree, not specifying mtry sets it at p/3 for a regression tree
+
+Fitting the regression tree (not specifying mtry sets it at p/3 for a regression tree)
 ```{r, results='hide'}
 rf_salaries <- randomForest(salary_in_usd ~ ., data = encoded_salaries_train, importance=TRUE)
 rf_salaries
 ```
 
-
+Checking predicted values for both the train and test dataset to calculate the comparison tables which will later be used for plotting
 ```{r, results='hide'}
 predicted_values3 <- predict(rf_salaries, newdata = encoded_salaries_train)
 predicted_values4 <- predict(rf_salaries, newdata = encoded_salaries_test)
@@ -515,11 +514,32 @@ comparison_table3 <- data.frame(Real = encoded_salaries_train$salary_in_usd, Pre
 head(comparison_table3)
 comparison_table4 <- data.frame(Real = encoded_salaries_test$salary_in_usd, Predicted = predicted_values4)
 head(comparison_table4)
-
 ```
 
-
+Plotting the 2 fits
 ```{r}
+plot3 <- ggplot(comparison_table3, aes(x = Real, y = Predicted)) +
+  geom_point() +
+  ggtitle("RF Plot - Training Data") +
+  xlab("Real Values") +
+  ylab("Predicted Values") +
+  geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") +
+  theme_minimal()
+
+plot4 <- ggplot(comparison_table4, aes(x = Real, y = Predicted)) +
+  geom_point() +
+  ggtitle("RF Plot - Test Data") +
+  xlab("Real Values") +
+  ylab("Predicted Values") +
+  geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") +
+  theme_minimal()
+
+gridExtra::grid.arrange(plot3, plot4, ncol = 2)
+```
+Judging from the plot, the training data plot suggests that we are beginning to fit the response better as opposed to the decision tree plot where it barely even seems to follow a pattern going towards the dotted line. Similarly for the Test data plot. where it seems to 
+
+Calculating the MSE 
+```{r, results='hide'}
 residuals3 <- predicted_values3 - encoded_salaries_train$salary_in_usd
 residuals4 <- predicted_values4- encoded_salaries_test$salary_in_usd
 train_mse_rf <- mean(residuals3^2)
@@ -527,4 +547,7 @@ test_mse_rf <- mean(residuals4^2)
 train_mse_rf
 test_mse_rf
 ```
+The MSE is also observably lower than the previous MSE gotten from fitting a decision tree. We can still attempt to tune this even more though by trying the bagging method followed by XGboosts. 
+
+#### Bagging and CV Regression Trees
 
