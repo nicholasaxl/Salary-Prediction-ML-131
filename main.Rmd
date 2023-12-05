@@ -4,8 +4,8 @@ title: 'PSTAT 131 Final Project: Model comparison for predicting the salary of a
 author: "Nicholas Axl Andrian"
 date: "2023-11-23"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
   word_document: default
 ---
 Dataset used: https://www.kaggle.com/datasets/arnabchaki/data-science-salaries-2023
@@ -37,35 +37,10 @@ library(ggplot2)
 library(gridExtra)
 library(class)
 library(FNN)
-library(tibble)
+library(tibble) 
 library(recipes)
 library(maptree)
 ```
-
-PSTAT 131 helper for Cross Validation
-
-```{r}
-do.chunk <- function(chunkid, folddef, Xdat, Ydat, ...){
-# Get training index
-train = (folddef!=chunkid)
-# Get training set by the above index
-Xtr = Xdat[train,]
-# Get responses in training set
-Ytr = Ydat[train]
-# Get validation set
-Xvl = Xdat[!train,]
-# Get responses in validation set
-Yvl = Ydat[!train]
-# Predict training labels
-predYtr = knn(train=Xtr, test=Xtr, cl=Ytr, ...)
-# Predict validation labels
-predYvl = knn(train=Xtr, test=Xvl, cl=Ytr, ...)
-data.frame(fold = chunkid,
-train.error = mean(predYtr != Ytr), # Training error for each fold
-val.error = mean(predYvl != Yvl)) # Validation error for each fold
-}
-```
-
 
 ## Part 1: Exploratory Data Analysis
 
@@ -125,7 +100,7 @@ grid.arrange(yearplot, expplot, ncol = 2)
 ```
 
 + We can see that the average salary in usd increases as the years go by, as the line congests further upwards towards the end.
-+ Experience level does not really show much of a trend as it goes towards seniority, We can tell though that EX has the highest average and MI has the highest peak
++ Experience level does not really show much of a trend as it goes towards seniority, We can tell though that EX has the highest average and MI has the highest peak.
 
 ```{r}
 employplot <- ggplot(salaries, aes(x = employment_type, y = salary_in_usd)) +
@@ -136,43 +111,35 @@ remoteplot <- ggplot(salaries, aes(x = remote_ratio, y = salary_in_usd)) +
   labs(x = "Remote Ratio", y = "Salary in USD", title = "Salary vs Remote Ratio")
 grid.arrange(employplot, remoteplot, ncol = 2)
 ```
+
 + In employment type, FT has the highest average as well as higher peaks
 + Remote ratio consists of 0, 50 and 100. The highest points as well as average are in the order 0>100>50 
 
 
-
-```{r}
+```{r, echo=FALSE}
 salaryplot <- ggplot(salaries, aes(x = salary, y = salary_in_usd)) +
   geom_point() +
   labs(title = "Salary vs. Salary in USD", x = "Salary", y = "Salary in USD")
-
-# Salary vs. Salary Currency plot
-currencyplot <- ggplot(salaries, aes(x = salary_in_usd, y = salary_currency)) +
-  geom_point() +
+currencyplot <- ggplot(salaries, aes(x = salary_in_usd, y = salary_currency)) + geom_point() +
   labs(title = "Salary(USD) vs Currency", x = "Salary", y = "Salary Currency")
-
-# Combine plots into a grid using facet_grid
 grid.arrange(salaryplot, currencyplot, ncol = 2)
 ```
+
 + In the first plot, we see that there is a point that is way further to the right than any of the other points. We will have to check that out right after this
 + On the 2nd plot, aside from seeing that we might have the most observations in USD, we can also see that it has the highest salary just based on numbers
 
 Checking out the "outlier" observation
 
-```{r}
+```{r, results='hide'}
 max(salaries$salary)
 outlierindex <- which(salaries$salary == max(salaries$salary))
 salaries$salary_currency[outlierindex]
 ```
 It seems to be an observation from the CLP currency. and connecting it back to the graph, we can see that it also only has that one observation. I will deem it insignificant for now, to avoid a potential leverage point affecting the models I will be removing said observation.
 
-```{r}
+
+```{r, echo=FALSE}
 salaries <- salaries[-outlierindex, ]
-```
-
-
-Plot showing salary vs Company Size
-```{r}
 usd_salary_by_size <- salaries%>%
   group_by(company_size)%>%
   summarise(Avg_sal=mean(salary_in_usd))
@@ -182,6 +149,7 @@ sizeplot <- ggplot(usd_salary_by_size, aes(x=company_size, y=Avg_sal)) +
   labs(title='Avg Salary vs Company Size', x='Company Size', y='Average Salary in USD')
 sizeplot
 ```
+
 + From this plot we can also see that medium sized companies pay the largest on average, followed by large then small
 
 Tabling the 6 highest and lowest paying jobs
@@ -199,8 +167,8 @@ bottom_6_job_salaries<-salaries%>%
   head()
 bottom_6_job_salaries
 ```
-Plotting the 6 highest and lowest paying jobs
-```{r}
+
+```{r, echo=FALSE}
 top6jobplot <- ggplot(top_6_job_salaries, aes(x = reorder(job_title, Avg_Sal), y = Avg_Sal)) +
   geom_bar(stat = "identity", fill = "skyblue") +
   labs(title = "Top 6 Job Salaries", x = "Job Title", y = "Average Salary (USD)")
@@ -211,6 +179,7 @@ top6jobplot <- top6jobplot + theme(axis.text.x = element_text(angle = 90, vjust 
 bot6jobplot <- bot6jobplot + theme(axis.text.x = element_text(angle = 90, vjust = 0.75, size=7, hjust=1))
 grid.arrange(top6jobplot,bot6jobplot, ncol = 2)
 ```
+
 + We can tell that the data science tech lead job has the highest average pay by far
 + we can also tell that the power bi developer has the lowest pay out of all the jobs
 
@@ -230,8 +199,8 @@ bottom_6_loc<-salaries%>%
 bottom_6_loc
 ```
 
-Plotting the 6 highest and lowest paying company locations
-```{r}
+
+```{r, echo=FALSE}
 top6locplot <- ggplot(top_6_loc, aes(x = reorder(company_location, Avg_Sal), y = Avg_Sal)) +
   geom_bar(stat = "identity", fill = "skyblue") +
   labs(title = "Top 6 Company Locations", x = "Location Code", y = "Average Salary (USD)")
@@ -242,6 +211,7 @@ top6resplot <- top6locplot + theme(axis.text.x = element_text(angle = 90, vjust 
 bot6resplot <- bot6locplot + theme(axis.text.x = element_text(angle = 90, vjust = 0.75, size=7, hjust=1))
 grid.arrange(top6locplot,bot6locplot, ncol = 2)
 ```
+
 + It seems that IL has the highest paying jobs when it comes to company location
 + MK has the lowest paying job out of all the locations by far
 
@@ -254,9 +224,8 @@ The main goal of this project, as mentioned before is to compare several statist
 + Regression Trees
   + Decision Trees
   + Random-Forest
+  + Bagging
   + Boosting
-+ Support Vector Machines
-  + Testing SVMs with different OSH methods
   
 I want to start off by deciding that the salary_currency and salary are not significant to our prediction of the salary_in_usd. Similarly for employee_residence, as the company_location should be sufficient
 ```{r, results='hide'}
@@ -325,21 +294,23 @@ Training the reggresor using the encoded training set, for now we will use k=10,
 ```{r, results='hide'}
 options(max.print = 1000)
 set.seed(123)
-pred_YTrain = knn.reg(train=knn_XTrain, test=knn_XTrain, y=knn_YTrain, k=10)
 ```
 
 Calculating the Training MSE
 ```{r, results='hide'}
-mean((pred_YTrain$pred - knn_YTrain)^2) #3065374515
+pred_YTrain = knn.reg(train=knn_XTrain, test=knn_XTrain, y=knn_YTrain, k=10)
+knn_mse_train <- mean((pred_YTrain$pred - knn_YTrain)^2) #2903523191
+knn_mse_train
 ```
 Calculating test MSE
 ```{r, results='hide'}
 pred.YTest = knn.reg(train=knn_XTrain, test=knn_XTest, y=knn_YTrain, k=10)
-mean((pred.YTest$pred - knn_YTest)^2) #3544608428
+knn_mse_test <- mean((pred.YTest$pred - knn_YTest)^2) #3560557411
+knn_mse_test
 ```
 Our MSE is very high due to the curse of dimensionality. When we use OHE, we make the predictor count very high due to the amount of added variables that K-NN will take into consideration, thus affecting the overall prediction negatively.
 
-After some thought and considerations, I believe that the KNN regression method is not worth for this sort of data set. Firstly, the original data set is full of categorical variables, we were only able to fit it into the model after encoding basically everything. Due to this, our training and test MSE seems to be very high. (train mse stays, test mse lowers as k goes from 1 to 10 which is an interesting connection) Visualization is inaccurate too due to KNN regression visualizations only being able to be graphed with 1 response, and in this case the only variable I can graph on would be the work_year, which wouldn't really show anything. Due to the above reasons, I will not be spending time in tuning the lambda for said method.
+I believe that the KNN regression method is not worth for this sort of data set. Firstly, the original data set is full of categorical variables, we were only able to fit it into the model after encoding basically everything. Due to this, our training and test MSE seems to be very high. (train mse stays, test mse lowers as k goes from 1 to 10 which is an interesting connection) Visualization is inaccurate too due to KNN regression visualizations only being able to be graphed with 1 response, and in this case the only variable I can graph on would be the work_year, which wouldn't really show anything. Due to the above reasons, I will not be spending time in tuning the lambda for said method.
 
 ### Linear Regression
 
@@ -374,14 +345,13 @@ gg_comparison_log <- ggplot(comparison_log_df, aes(x = log.train$salary_in_usd, 
 
 checking non log'd predictions
 
-```{r}
+```{r, results='hide'}
 options(max.print = 6)
 comparison_df <- data.frame(Actual = encoded_salaries_train$salary_in_usd, Predicted = exp(predicted_values))
 comparison_df
 ```
-Creating the non log plot
 
-```{r, results='hide'}
+```{r, echo=FALSE}
 gg_comparison <- ggplot(comparison_df, aes(x = Actual, y = Predicted)) +
   geom_point() +
   geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
@@ -424,6 +394,7 @@ Overall, although we are able to fit the response variable quite well into a lin
 ### Tree based methods
 
 Preparing the non-encoded training and testing data set with Train/Test/Split
+
 ```{r, results='hide'}
 set.seed(123)
 salaries_count = sample(1:nrow(salaries), 3003)
@@ -437,17 +408,23 @@ YTest = salaries_test$salary_in_usd
 XTest = salaries_test %>% select(-salary_in_usd)
 ```
 
-#### Decision Regression Trees
+### Decision Regression Trees
 
-```{r, results='hide'}
-head(encoded_salaries)
+```{r}
 tree_salaries <- tree(salary_in_usd ~ ., data = encoded_salaries_train)
+
+tree_salaries.cv = cv.tree(tree_salaries, K=5)
+best_cv = min(tree_salaries.cv$size[tree_salaries.cv$dev == min(tree_salaries.cv$dev)])
 ```
+
+Seems like the best tree fitted using this R function is the one with the size of 7 (the default fitted one)
+
 
 ```{r}
 draw.tree(tree_salaries, nodeinfo=TRUE, cex = 0.8)
 ```
-Total deviance explained = 37.7 %. Here, it doesn't seem like we need to prune the tree, due to how less complex it is given the dataset with variables holding a large variable level. R seems to have already decided the important variables on its base iteration.
+
+Total deviance explained = 36 %. It doesn't seem like we need to prune the tree, due to how less complex it is given the dataset with a huge amount of variables as we have right now. R seems to have already decided the important variables on its base iteration.
 
 Tabling real values in salaries_train vs the predicted tree values
 
@@ -456,14 +433,18 @@ predicted_values1 <- predict(tree_salaries, newdata = encoded_salaries_train)
 
 comparison_table1 <- data.frame(Real = encoded_salaries_train$salary_in_usd, Predicted = predicted_values1)
 ```
+
 Similarly for the training set
+
 ```{r, results='hide'}
 predicted_values2 <- predict(tree_salaries, newdata = encoded_salaries_test)
 
 comparison_table2 <- data.frame(Real = encoded_salaries_test$salary_in_usd, Predicted = predicted_values2)
 ```
+
 Visualization plot
-```{r}
+
+```{r, echo=FALSE}
 plot1 <- ggplot(comparison_table1, aes(x = Real, y = Predicted)) +
   geom_point() +
   ggtitle("Tree Plot - Training Data") +
@@ -487,24 +468,27 @@ gridExtra::grid.arrange(plot1, plot2, ncol = 2)
 Train and Test MSE calculation
 ```{r, results='hide'}
 residuals1 <- predicted_values1 - encoded_salaries_train$salary_in_usd
-train_mse <- mean(residuals1^2)
+train_mse_tree <- mean(residuals1^2)
 residuals2 <- predicted_values2 - encoded_salaries_test$salary_in_usd
-test_mse <- mean(residuals2^2)
+test_mse_tree <- mean(residuals2^2)
 
-train_mse #2509462123
-test_mse #2818380612
+train_mse_tree #2509462123
+test_mse_tree #2818380612
 ```
 We notice that with a regular simple decision tree, that other variables like remote_ratio, company_size and employment type were not fit into the decision. It also seems that through the visualization, factors that have a ton of levels did not split as much as expected. This causes a very small amount of possible responses which although helps with overfitting, makes the response less accurate. Still, the MSEs were way lower than those from the regression methods by 2 digits. To try and make a more complex structure, we will try other methods like random-forest and XGBoosting
 
 
-#### Random Forest Regression Trees
+### Random Forest Regression Trees
 
 
 Fitting the regression tree (not specifying mtry sets it at p/3 for a regression tree)
-```{r, results='hide'}
+
+```{r, results='hide', cache=TRUE}
+set.seed(123)
 rf_salaries <- randomForest(salary_in_usd ~ ., data = encoded_salaries_train, importance=TRUE)
 rf_salaries
 ```
+
 
 Checking predicted values for both the train and test dataset to calculate the comparison tables which will later be used for plotting
 ```{r, results='hide'}
@@ -516,8 +500,9 @@ comparison_table4 <- data.frame(Real = encoded_salaries_test$salary_in_usd, Pred
 head(comparison_table4)
 ```
 
-Plotting the 2 fits
-```{r}
+Visualizing the 2 fits
+
+```{r, echo=FALSE}
 plot3 <- ggplot(comparison_table3, aes(x = Real, y = Predicted)) +
   geom_point() +
   ggtitle("RF Plot - Training Data") +
@@ -544,10 +529,159 @@ residuals3 <- predicted_values3 - encoded_salaries_train$salary_in_usd
 residuals4 <- predicted_values4- encoded_salaries_test$salary_in_usd
 train_mse_rf <- mean(residuals3^2)
 test_mse_rf <- mean(residuals4^2)
-train_mse_rf
-test_mse_rf
+train_mse_rf #1720059149
+test_mse_rf #2524548390
 ```
-The MSE is also observably lower than the previous MSE gotten from fitting a decision tree. We can still attempt to tune this even more though by trying the bagging method followed by XGboosts. 
+The MSE is also observably lower than the previous MSE gotten from fitting a decision tree. We can still attempt to tune this even more though by trying the bagging method followed by boosting. 
 
-#### Bagging and CV Regression Trees
+### Bagging 
+
+Fitting the bagged model
+
+```{r, results='hide', cache=TRUE}
+set.seed(123)
+bag_salaries <- randomForest(salary_in_usd ~ ., data = encoded_salaries_train, mtry = ncol(encoded_XTrain), importance=TRUE)
+bag_salaries
+```
+Predicted values for train and test datasets based on the model
+
+```{r, results='hide'}
+predicted_values5 <- predict(bag_salaries, newdata = encoded_salaries_train)
+predicted_values6 <- predict(bag_salaries, newdata = encoded_salaries_test)
+comparison_table5 <- data.frame(Real = encoded_salaries_train$salary_in_usd, Predicted = predicted_values5)
+head(comparison_table5)
+comparison_table6 <- data.frame(Real = encoded_salaries_test$salary_in_usd, Predicted = predicted_values6)
+head(comparison_table6)
+```
+
+Visualizing those tables
+
+```{r, echo=FALSE}
+plot5 <- ggplot(comparison_table5, aes(x = Real, y = Predicted)) +
+  geom_point() +
+  ggtitle("Bagged Plot - Training Data") +
+  xlab("Real Values") +
+  ylab("Predicted Values") +
+  geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") +
+  theme_minimal()
+
+plot6 <- ggplot(comparison_table6, aes(x = Real, y = Predicted)) +
+  geom_point() +
+  ggtitle("Bagged Plot - Test Data") +
+  xlab("Real Values") +
+  ylab("Predicted Values") +
+  geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") +
+  theme_minimal()
+
+gridExtra::grid.arrange(plot5, plot6, ncol = 2)
+```
+calculating train and test MSEs
+```{r, results='hide'}
+residuals5 <- predicted_values5 - encoded_salaries_train$salary_in_usd
+residuals6 <- predicted_values6- encoded_salaries_test$salary_in_usd
+train_mse_bag <- mean(residuals5^2)
+test_mse_bag <- mean(residuals6^2)
+train_mse_bag #1665896460
+test_mse_bag #2581181189
+```
+The rf and bagging methods are incredible similar in terms of the visualization and MSE. We have a better training MSE but a worse testing MSE though, likely due to overfitting as we are using way more trees than with this method than the random forest method. Due to this, there is no reason to use the bagging method instead due to its way worse computational strain.
+
+### Boosting
+
+Removing the variables with no variation
+
+```{r}
+boost_salaries_train <- encoded_salaries_train %>%
+  select(-company_location.BA, -company_location.CL, -company_location.IR, -company_location.NZ)
+
+boost_salaries_test <- encoded_salaries_test %>%
+  select(-company_location.BA, -company_location.CL, -company_location.IR, -company_location.NZ)
+```
+
+Fitting the boosted model using gbm
+
+```{r, results='hide', cache=TRUE}
+set.seed(123)
+boost_salaries <- gbm(salary_in_usd ~ . ,
+                      data = boost_salaries_train,
+                      distribution = "gaussian",
+                      n.trees = 500,
+                      interaction.depth = 2)
+
+#removed those variables as fitting the gbm with them gives a warning due to them not having variation
+```
+
+Summary to produce a relative influence plot as well as statistics
+
+```{r, results='hide'}
+#summary(boost_salaries) commented out due to taking up too much space
+```
+
+Predicted values for train and test datasets based on the model
+
+```{r, results='hide', message=FALSE}
+predicted_values7 <- predict(boost_salaries, newdata = encoded_salaries_train)
+predicted_values8 <- predict(boost_salaries, newdata = encoded_salaries_test)
+comparison_table7 <- data.frame(Real = encoded_salaries_train$salary_in_usd, Predicted = predicted_values7)
+head(comparison_table7)
+comparison_table8 <- data.frame(Real = encoded_salaries_test$salary_in_usd, Predicted = predicted_values8)
+head(comparison_table8)
+```
+
+Visualizing those tables
+
+```{r, echo=FALSE}
+plot7 <- ggplot(comparison_table7, aes(x = Real, y = Predicted)) +
+  geom_point() +
+  ggtitle("Boosted Plot - Training Data") +
+  xlab("Real Values") +
+  ylab("Predicted Values") +
+  geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") +
+  theme_minimal()
+
+plot8 <- ggplot(comparison_table8, aes(x = Real, y = Predicted)) +
+  geom_point() +
+  ggtitle("Boosted Plot - Test Data") +
+  xlab("Real Values") +
+  ylab("Predicted Values") +
+  geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") +
+  theme_minimal()
+
+gridExtra::grid.arrange(plot7, plot8, ncol = 2)
+```
+
+calculating train and test MSEs
+```{r, results='hide'}
+residuals7 <- predicted_values7 - encoded_salaries_train$salary_in_usd
+residuals8 <- predicted_values8 - encoded_salaries_test$salary_in_usd
+train_mse_boost <- mean(residuals7^2)
+test_mse_boost <- mean(residuals8^2)
+train_mse_boost #2166136013
+test_mse_boost #2575802860
+```
+With 500 trees being fitted using this boosting method, we actually have a higher train MSE than the previous 2 tree methods but a slightly lower test mse than the bagging method. Once again making sense since we did not overfit the training MSE but are still less fitting than the default p/3 n.tree used in the random forest method.
+
+## Part 3: Conclusion and comparisons
+
+Overall, we can see that tree methods are generally the better model for fitting a data set with a huge amount of levels for its categorical factors. Using the MSE as a measure of accuracy through counting its errors, we can easily see the immense amount of differences between the regression methods against the tree methods. 
+
+Tabling the MSEs
+
+```{r}
+options(max.print = 1000)
+methods <- c("K-NN", "Linear Regression", "Decision Tree", "Random Forest", "Bagging", "Boosting")
+train_mse_combination <- c(knn_mse_train, mse_nonlog, train_mse_tree, train_mse_rf, train_mse_bag, train_mse_boost)
+test_mse_combination <- c(knn_mse_test, mse_test, test_mse_tree, test_mse_rf, test_mse_bag, test_mse_boost)
+
+MSE_comparison_table <- data.frame(Method = methods, `Train MSE` = train_mse_combination, `Test MSE` = test_mse_combination)
+
+MSE_comparison_table
+```
+
+From these observations, we can conclude that the Random Forest tree method is the best out of all the other methods.
+
+What can we do to further improve on predicting the salary_in_usd? Due to how the earlier EDA portion was done prior to realizing I required encoding for alot of these methods, there was no comfortable way early on to pick out outliers/influential observations which may have resulted in a higher MSE. Also due to the limitations, I was not able to experiment with XGBoosting, which is a way more sophisticated method of fitting a decision tree, likely having a lower MSE than all these other methods. Another problem was the fact that despite using one-hot encoding, R was not able to display a complete tree in which it overfits through including every other predictor. It instead disappointingly fitted a decision tree with way less branches than I expected, ruining the chances of performing a tree-pruning/cv method to fit my own custom measure for fit. It may be wise to attempt similar methods in another programming language to fix these limitations, namely Python.
+
+
+
 
