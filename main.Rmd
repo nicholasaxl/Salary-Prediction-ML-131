@@ -501,20 +501,30 @@ We notice that with a regular simple decision tree, that other variables like re
 
 #### Random Forest Regression Trees
 
+fitting the tree, not specifying mtry sets it at p/3 for a regression tree
 ```{r, results='hide'}
 rf_salaries <- randomForest(salary_in_usd ~ ., data = encoded_salaries_train, importance=TRUE)
+rf_salaries
 ```
 
 
 ```{r, results='hide'}
-rf_salaries
-
 predicted_values3 <- predict(rf_salaries, newdata = encoded_salaries_train)
-
+predicted_values4 <- predict(rf_salaries, newdata = encoded_salaries_test)
 comparison_table3 <- data.frame(Real = encoded_salaries_train$salary_in_usd, Predicted = predicted_values3)
-head(comparison_table1)
-residuals1 <- predicted_values3 - encoded_salaries_train$salary_in_usd
-train_mse <- mean(residuals1^2)
-train_mse
+head(comparison_table3)
+comparison_table4 <- data.frame(Real = encoded_salaries_test$salary_in_usd, Predicted = predicted_values4)
+head(comparison_table4)
+
+```
+
+
+```{r}
+residuals3 <- predicted_values3 - encoded_salaries_train$salary_in_usd
+residuals4 <- predicted_values4- encoded_salaries_test$salary_in_usd
+train_mse_rf <- mean(residuals3^2)
+test_mse_rf <- mean(residuals4^2)
+train_mse_rf
+test_mse_rf
 ```
 
