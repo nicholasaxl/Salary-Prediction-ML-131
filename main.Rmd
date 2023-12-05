@@ -4,8 +4,8 @@ title: 'PSTAT 131 Final Project: Model comparison for predicting the salary of a
 author: "Nicholas Axl Andrian"
 date: "2023-11-23"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
   word_document: default
 ---
 Dataset used: https://www.kaggle.com/datasets/arnabchaki/data-science-salaries-2023
@@ -100,7 +100,7 @@ factor_cols <- salaries[, c(1, 2, 3, 4, 6, 8, 10, 11)]
 # finding unique values, referenced code from https://www.kaggle.com/code/abdulfaheem11/data-science-salaries-2023-analysis
 
 # output ommitted to prevent too much space being taken up
-sapply(factor_cols, function(col) unique(col))
+uniques <- sapply(factor_cols, function(col) unique(col))
 ```
 
 Changing said variables to become factors
@@ -274,6 +274,7 @@ encoded_data <- dummyVars(formula, data = salaries[, cat_cols])
 encoded_salaries <- predict(encoded_data, newdata = salaries)
 encoded_salaries <- cbind(salaries, encoded_salaries)
 encoded_salaries <- subset(encoded_salaries, select = -c(job_title, company_location))
+colnames(encoded_salaries) <- gsub(" ", "_", colnames(encoded_salaries))
 head(encoded_salaries)
 ```
 
@@ -422,67 +423,6 @@ Overall, although we are able to fit the response variable quite well into a lin
 
 ### Tree based methods
 
-Apparently R has a limitation of 32 levels for factors when trying to put them into a decision tree. 
-
-Checking the frequencies of the factors with a large amount of levels
-```{r, results='hide'}
-options(max.print = 1000)
-
-freq_table1 <- table(salaries$job_title)
-freq_table2 <- table(salaries$company_location)
-sorted_freq_table1 <- sort(freq_table1)
-sorted_freq_table2 <- sort(freq_table2)
-N <- 100
-
-bottom_freq1 <- head(sorted_freq_table1, n = N)
-bottom_freq2 <- head(sorted_freq_table2, n = N)
-num_unique_levels1 <- length(unique(salaries$job_title))
-num_unique_levels2 <- length(unique(salaries$company_location))
-
-bottom_freq1
-bottom_freq2
-num_unique_levels1 #93
-num_unique_levels2 #71
-```
-
-A method we could use to circumvent this could be the PCT method where we cut off a percentage of the unlikely levels and group them as other. 
-
-PCT for job_title
-```{r, results='hide'}
-options(max.print = 1000)
-
-job_title_freq <- table(salaries$job_title)
-
-num_top_job_titles <- 31
-
-top_job_titles <- names(sort(job_title_freq, decreasing = TRUE))[1:num_top_job_titles]
-
-salaries$job_title <- ifelse(!(salaries$job_title %in% top_job_titles), "Others", as.character(salaries$job_title))
-
-salaries$job_title <- factor(salaries$job_title, levels = c(top_job_titles, "Others"))
-
-table(salaries$job_title)
-length(unique(salaries$job_title))
-```
-
-PCT for company_location
-```{r, results='hide'}
-options(max.print = 1000)
-
-company_location_freq <- table(salaries$company_location)
-
-num_top_company_location <- 31
-
-top_company_location <- names(sort(company_location_freq, decreasing = TRUE))[1:num_top_company_location]
-
-salaries$company_location <- ifelse(!(salaries$company_location %in% top_company_location), "Others", as.character(salaries$company_location))
-
-salaries$company_location <- factor(salaries$company_location, levels = c(top_company_location, "Others"))
-
-table(salaries$company_location)
-length(unique(salaries$company_location))
-```
-
 Preparing the non-encoded training and testing data set with Train/Test/Split
 ```{r, results='hide'}
 set.seed(123)
@@ -497,45 +437,84 @@ YTest = salaries_test$salary_in_usd
 XTest = salaries_test %>% select(-salary_in_usd)
 ```
 
-Fit the regression tree
+#### Decision Regression Trees
+
 ```{r, results='hide'}
-tree_salaries <- tree(salary_in_usd ~ ., data = salaries_train, split = "deviance")
-summary(tree_salaries)
+head(encoded_salaries)
+tree_salaries <- tree(salary_in_usd ~ ., data = encoded_salaries_train)
 ```
 
-Visualize the tree
 ```{r}
 draw.tree(tree_salaries, nodeinfo=TRUE, cex = 0.8)
 ```
-Total deviance explained = 37.7 %. Here, it doesn't seem like we need to prune the tree, due to how less complex it is given the dataset with variables holding a large factor level. 
+Total deviance explained = 37.7 %. Here, it doesn't seem like we need to prune the tree, due to how less complex it is given the dataset with variables holding a large variable level. R seems to have already decided the important variables on its base iteration.
 
 Tabling real values in salaries_train vs the predicted tree values
 
 ```{r, results='hide'}
-predicted_values1 <- predict(tree_salaries, newdata = salaries_train)
+predicted_values1 <- predict(tree_salaries, newdata = encoded_salaries_train)
 
-comparison_table1 <- data.frame(Real = salaries_train$salary_in_usd, Predicted = predicted_values1)
-comparison_table1
+comparison_table1 <- data.frame(Real = encoded_salaries_train$salary_in_usd, Predicted = predicted_values1)
 ```
 Similarly for the training set
 ```{r, results='hide'}
-predicted_values2 <- predict(tree_salaries, newdata = salaries_test)
+predicted_values2 <- predict(tree_salaries, newdata = encoded_salaries_test)
 
-comparison_table2 <- data.frame(Real = salaries_test$salary_in_usd, Predicted = predicted_values2)
-comparison_table2
+comparison_table2 <- data.frame(Real = encoded_salaries_test$salary_in_usd, Predicted = predicted_values2)
+```
+Visualization plot
+```{r}
+library(ggplot2)
+
+plot1 <- ggplot(comparison_table1, aes(x = Real, y = Predicted)) +
+  geom_point() +
+  ggtitle("Comparison Plot - Training Data") +
+  xlab("Real Values") +
+  ylab("Predicted Values") +
+  geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") +
+  theme_minimal()
+
+plot2 <- ggplot(comparison_table2, aes(x = Real, y = Predicted)) +
+  geom_point() +
+  ggtitle("Comparison Plot - Test Data") +
+  xlab("Real Values") +
+  ylab("Predicted Values") +
+  geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") +
+  theme_minimal()
+
+gridExtra::grid.arrange(plot1, plot2, ncol = 2)
 ```
 
 
 Train and Test MSE calculation
 ```{r, results='hide'}
-residuals1 <- predicted_values1 - salaries_train$salary_in_usd
-train_mse1 <- mean(residuals1^2)
-residuals2 <- predicted_values2 - salaries_test$salary_in_usd
-train_mse2 <- mean(residuals2^2)
+residuals1 <- predicted_values1 - encoded_salaries_train$salary_in_usd
+train_mse <- mean(residuals1^2)
+residuals2 <- predicted_values2 - encoded_salaries_test$salary_in_usd
+test_mse <- mean(residuals2^2)
 
-train_mse1 #2609732117
-train_mse2 #2941293738
+train_mse #2509462123
+test_mse #2818380612
 ```
 We notice that with a regular simple decision tree, that other variables like remote_ratio, company_size and employment type were not fit into the decision. It also seems that through the visualization, factors that have a ton of levels did not split as much as expected. This causes a very small amount of possible responses which although helps with overfitting, makes the response less accurate. Still, the MSEs were way lower than those from the regression methods by 2 digits. To try and make a more complex structure, we will try other methods like random-forest and XGBoosting
 
+
+#### Random Forest Regression Trees
+
+```{r, results='hide'}
+rf_salaries <- randomForest(salary_in_usd ~ ., data = encoded_salaries_train, importance=TRUE)
+```
+
+
+```{r, results='hide'}
+rf_salaries
+
+predicted_values3 <- predict(rf_salaries, newdata = encoded_salaries_train)
+
+comparison_table3 <- data.frame(Real = encoded_salaries_train$salary_in_usd, Predicted = predicted_values3)
+head(comparison_table1)
+residuals1 <- predicted_values3 - encoded_salaries_train$salary_in_usd
+train_mse <- mean(residuals1^2)
+train_mse
+```
 
