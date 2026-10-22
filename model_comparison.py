@@ -113,7 +113,14 @@ def shap_summary(df: pd.DataFrame) -> None:
         [("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False), CAT), ("num", "passthrough", NUM)]
     )
     Xt = pre.fit_transform(X)
-    names = pre.get_feature_names_out()
+    pretty = {"company_location": "Location", "experience_level": "Level", "job_title": "Title",
+              "company_size": "Company size", "employment_type": "Employment"}
+
+    def nice(n):
+        n = n.replace("cat__", "").replace("num__", "")
+        return next((f"{v}: {n[len(k) + 1:]}" for k, v in pretty.items() if n.startswith(k + "_")), n)
+
+    names = [nice(n) for n in pre.get_feature_names_out()]
     model = XGBRegressor(
         n_estimators=400, learning_rate=0.03, max_depth=4, subsample=0.8,
         colsample_bytree=0.6, min_child_weight=3, random_state=SEED,
@@ -121,9 +128,11 @@ def shap_summary(df: pd.DataFrame) -> None:
     # xgboost's own TreeSHAP; shap.TreeExplainer can't parse xgboost 3.x's base_score format
     sv = model.get_booster().predict(xgb.DMatrix(Xt, feature_names=list(names)), pred_contribs=True)[:, :-1]
     shap.summary_plot(sv, Xt, feature_names=names, max_display=15, show=False)
-    plt.title("What drives log-salary (XGBoost, deduplicated data)")
+    plt.gcf().set_size_inches(9, 6.5)
+    plt.title("What drives log-salary (XGBoost, deduplicated data)", loc="left", fontsize=11, fontweight="bold")
+    plt.xlabel("SHAP value (impact on log-salary; 0.1 is roughly +10%)")
     plt.tight_layout()
-    plt.savefig(OUT / "shap_summary.png", dpi=150)
+    plt.savefig(OUT / "shap_summary.png", dpi=140, bbox_inches="tight")
     plt.close()
 
 
