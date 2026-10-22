@@ -1,0 +1,589 @@
+{
+ "rows": 2583,
+ "median_salary": 130000.0,
+ "years": [
+  2020,
+  2023
+ ],
+ "premiums": [
+  {
+   "factor": "Level: Mid vs Entry",
+   "pct": 34.1207987679508,
+   "lo": 25.09935959907773,
+   "hi": 43.7543506869013,
+   "n": 664,
+   "significant": true
+  },
+  {
+   "factor": "Level: Senior vs Entry",
+   "pct": 73.07161719981445,
+   "lo": 61.14719799945083,
+   "hi": 85.07719516154424,
+   "n": 1553,
+   "significant": true
+  },
+  {
+   "factor": "Level: Executive vs Entry",
+   "pct": 115.02918123932129,
+   "lo": 98.67672893566449,
+   "hi": 135.60975465836532,
+   "n": 96,
+   "significant": true
+  },
+  {
+   "factor": "Location: CA vs US",
+   "pct": -17.887896917490767,
+   "lo": -24.024678574620957,
+   "hi": -10.913176095939328,
+   "n": 83,
+   "significant": true
+  },
+  {
+   "factor": "Location: GB vs US",
+   "pct": -34.58179945381885,
+   "lo": -38.63442675044009,
+   "hi": -30.871160522919254,
+   "n": 155,
+   "significant": true
+  },
+  {
+   "factor": "Location: IN vs US",
+   "pct": -80.59951006908813,
+   "lo": -83.09580053487592,
+   "hi": -77.53859439615232,
+   "n": 57,
+   "significant": true
+  },
+  {
+   "factor": "Location: Europe (other) vs US",
+   "pct": -51.325222473523205,
+   "lo": -54.49514524300796,
+   "hi": -47.8677172919504,
+   "n": 244,
+   "significant": true
+  },
+  {
+   "factor": "Location: Rest of world vs US",
+   "pct": -58.55252515469327,
+   "lo": -64.04047252174352,
+   "hi": -52.788907857976895,
+   "n": 116,
+   "significant": true
+  },
+  {
+   "factor": "Role: Scientist vs Engineer",
+   "pct": 4.299204166926045,
+   "lo": 0.6580828643674635,
+   "hi": 8.392845690008253,
+   "n": 674,
+   "significant": true
+  },
+  {
+   "factor": "Role: Analyst vs Engineer",
+   "pct": -19.018788949078036,
+   "lo": -22.02885250205394,
+   "hi": -16.327654523485986,
+   "n": 577,
+   "significant": true
+  },
+  {
+   "factor": "Role: ML/AI vs Engineer",
+   "pct": 14.305000919103438,
+   "lo": 8.330535843625075,
+   "hi": 20.443154593119502,
+   "n": 386,
+   "significant": true
+  },
+  {
+   "factor": "Role: Leadership vs Engineer",
+   "pct": 18.950948958268544,
+   "lo": 12.410035077436001,
+   "hi": 26.33365980958268,
+   "n": 180,
+   "significant": true
+  },
+  {
+   "factor": "Role: Architect vs Engineer",
+   "pct": 6.934791202097671,
+   "lo": -1.0111162127712041,
+   "hi": 14.9495218280341,
+   "n": 67,
+   "significant": false
+  },
+  {
+   "factor": "Role: Other vs Engineer",
+   "pct": -22.505438206424824,
+   "lo": -36.10266953443732,
+   "hi": -7.9976836754840335,
+   "n": 19,
+   "significant": true
+  },
+  {
+   "factor": "Company: Small vs Medium",
+   "pct": -17.86737372982079,
+   "lo": -26.26261609751024,
+   "hi": -8.133533220965655,
+   "n": 147,
+   "significant": true
+  },
+  {
+   "factor": "Company: Large vs Medium",
+   "pct": 5.310086355650272,
+   "lo": -0.03028340644401245,
+   "hi": 11.029149590621595,
+   "n": 409,
+   "significant": false
+  },
+  {
+   "factor": "Setup: Hybrid vs On-site",
+   "pct": -1.864703130598064,
+   "lo": -10.385357557460493,
+   "hi": 6.986477943207086,
+   "n": 187,
+   "significant": false
+  },
+  {
+   "factor": "Setup: Remote vs On-site",
+   "pct": -1.346061398145903,
+   "lo": -4.071948283396449,
+   "hi": 1.4147436687363548,
+   "n": 1210,
+   "significant": false
+  },
+  {
+   "factor": "Per year (2020-2023)",
+   "pct": 6.652778534517393,
+   "lo": 3.558373010842001,
+   "hi": 9.496609349370067,
+   "n": 2508,
+   "significant": true
+  }
+ ],
+ "bands": [
+  {
+   "family": "Analyst",
+   "level": "Entry",
+   "market": "Outside US",
+   "n": 29,
+   "median": 21461.0,
+   "p25": 10000.0,
+   "p75": 50000.0
+  },
+  {
+   "family": "Analyst",
+   "level": "Entry",
+   "market": "US",
+   "n": 48,
+   "median": 64100.0,
+   "p25": 50000.0,
+   "p75": 96250.0
+  },
+  {
+   "family": "Analyst",
+   "level": "Executive",
+   "market": "US",
+   "n": 11,
+   "median": 153000.0,
+   "p25": 142500.0,
+   "p75": 187500.0
+  },
+  {
+   "family": "Analyst",
+   "level": "Mid",
+   "market": "Outside US",
+   "n": 59,
+   "median": 50432.0,
+   "p25": 39483.0,
+   "p75": 76500.0
+  },
+  {
+   "family": "Analyst",
+   "level": "Mid",
+   "market": "US",
+   "n": 105,
+   "median": 105380.0,
+   "p25": 80000.0,
+   "p75": 135000.0
+  },
+  {
+   "family": "Analyst",
+   "level": "Senior",
+   "market": "Outside US",
+   "n": 35,
+   "median": 71786.0,
+   "p25": 51508.0,
+   "p75": 103047.5
+  },
+  {
+   "family": "Analyst",
+   "level": "Senior",
+   "market": "US",
+   "n": 289,
+   "median": 125600.0,
+   "p25": 104300.0,
+   "p75": 156400.0
+  },
+  {
+   "family": "Architect",
+   "level": "Senior",
+   "market": "US",
+   "n": 54,
+   "median": 168250.0,
+   "p25": 125750.0,
+   "p75": 209693.75
+  },
+  {
+   "family": "Engineer",
+   "level": "Entry",
+   "market": "Outside US",
+   "n": 21,
+   "median": 45390.0,
+   "p25": 21637.0,
+   "p75": 60000.0
+  },
+  {
+   "family": "Engineer",
+   "level": "Entry",
+   "market": "US",
+   "n": 28,
+   "median": 88000.0,
+   "p25": 71875.0,
+   "p75": 126000.0
+  },
+  {
+   "family": "Engineer",
+   "level": "Executive",
+   "market": "US",
+   "n": 36,
+   "median": 206000.0,
+   "p25": 163350.0,
+   "p75": 239750.0
+  },
+  {
+   "family": "Engineer",
+   "level": "Mid",
+   "market": "Outside US",
+   "n": 70,
+   "median": 71069.5,
+   "p25": 57723.0,
+   "p75": 84812.75
+  },
+  {
+   "family": "Engineer",
+   "level": "Mid",
+   "market": "US",
+   "n": 95,
+   "median": 120000.0,
+   "p25": 97050.0,
+   "p75": 153500.0
+  },
+  {
+   "family": "Engineer",
+   "level": "Senior",
+   "market": "Outside US",
+   "n": 45,
+   "median": 94000.0,
+   "p25": 61566.0,
+   "p75": 135000.0
+  },
+  {
+   "family": "Engineer",
+   "level": "Senior",
+   "market": "US",
+   "n": 384,
+   "median": 155000.0,
+   "p25": 122450.0,
+   "p75": 194250.0
+  },
+  {
+   "family": "Leadership",
+   "level": "Executive",
+   "market": "Outside US",
+   "n": 12,
+   "median": 128746.5,
+   "p25": 112916.5,
+   "p75": 155322.25
+  },
+  {
+   "family": "Leadership",
+   "level": "Executive",
+   "market": "US",
+   "n": 20,
+   "median": 229500.0,
+   "p25": 180395.0,
+   "p75": 280725.0
+  },
+  {
+   "family": "Leadership",
+   "level": "Mid",
+   "market": "Outside US",
+   "n": 11,
+   "median": 60795.0,
+   "p25": 25564.5,
+   "p75": 73957.0
+  },
+  {
+   "family": "Leadership",
+   "level": "Mid",
+   "market": "US",
+   "n": 22,
+   "median": 137500.0,
+   "p25": 105875.0,
+   "p75": 155000.0
+  },
+  {
+   "family": "Leadership",
+   "level": "Senior",
+   "market": "Outside US",
+   "n": 30,
+   "median": 95025.5,
+   "p25": 66086.0,
+   "p75": 133574.5
+  },
+  {
+   "family": "Leadership",
+   "level": "Senior",
+   "market": "US",
+   "n": 83,
+   "median": 175000.0,
+   "p25": 140050.0,
+   "p75": 202250.0
+  },
+  {
+   "family": "ML/AI",
+   "level": "Entry",
+   "market": "Outside US",
+   "n": 41,
+   "median": 34672.0,
+   "p25": 20000.0,
+   "p75": 66192.0
+  },
+  {
+   "family": "ML/AI",
+   "level": "Entry",
+   "market": "US",
+   "n": 21,
+   "median": 125000.0,
+   "p25": 83000.0,
+   "p75": 163196.0
+  },
+  {
+   "family": "ML/AI",
+   "level": "Mid",
+   "market": "Outside US",
+   "n": 49,
+   "median": 63711.0,
+   "p25": 46178.0,
+   "p75": 86193.0
+  },
+  {
+   "family": "ML/AI",
+   "level": "Mid",
+   "market": "US",
+   "n": 64,
+   "median": 149250.0,
+   "p25": 118075.0,
+   "p75": 183475.0
+  },
+  {
+   "family": "ML/AI",
+   "level": "Senior",
+   "market": "Outside US",
+   "n": 55,
+   "median": 110000.0,
+   "p25": 67279.0,
+   "p75": 184300.0
+  },
+  {
+   "family": "ML/AI",
+   "level": "Senior",
+   "market": "US",
+   "n": 153,
+   "median": 184590.0,
+   "p25": 145000.0,
+   "p75": 214000.0
+  },
+  {
+   "family": "Scientist",
+   "level": "Entry",
+   "market": "Outside US",
+   "n": 43,
+   "median": 42000.0,
+   "p25": 25741.0,
+   "p75": 68786.5
+  },
+  {
+   "family": "Scientist",
+   "level": "Entry",
+   "market": "US",
+   "n": 35,
+   "median": 100000.0,
+   "p25": 81000.0,
+   "p75": 130000.5
+  },
+  {
+   "family": "Scientist",
+   "level": "Mid",
+   "market": "Outside US",
+   "n": 95,
+   "median": 62649.0,
+   "p25": 42646.5,
+   "p75": 83585.5
+  },
+  {
+   "family": "Scientist",
+   "level": "Mid",
+   "market": "US",
+   "n": 84,
+   "median": 126250.0,
+   "p25": 100000.0,
+   "p75": 151507.5
+  },
+  {
+   "family": "Scientist",
+   "level": "Senior",
+   "market": "Outside US",
+   "n": 45,
+   "median": 103691.0,
+   "p25": 60757.0,
+   "p75": 145900.0
+  },
+  {
+   "family": "Scientist",
+   "level": "Senior",
+   "market": "US",
+   "n": 362,
+   "median": 159150.0,
+   "p25": 134077.0,
+   "p75": 200000.0
+  }
+ ],
+ "reliability": [
+  {
+   "group": "Location",
+   "segment": "CA",
+   "n": 83,
+   "coverage": 0.7469879518072289,
+   "median_width": 123426.12438560315
+  },
+  {
+   "group": "Location",
+   "segment": "Europe (other)",
+   "n": 244,
+   "coverage": 0.7868852459016393,
+   "median_width": 74452.6026383685
+  },
+  {
+   "group": "Location",
+   "segment": "GB",
+   "n": 155,
+   "coverage": 0.7612903225806451,
+   "median_width": 67907.23630835189
+  },
+  {
+   "group": "Location",
+   "segment": "IN",
+   "n": 57,
+   "coverage": 0.7368421052631579,
+   "median_width": 53687.51801256866
+  },
+  {
+   "group": "Location",
+   "segment": "Rest of world",
+   "n": 116,
+   "coverage": 0.6982758620689655,
+   "median_width": 83334.14210723284
+  },
+  {
+   "group": "Location",
+   "segment": "US",
+   "n": 1928,
+   "coverage": 0.7811203319502075,
+   "median_width": 122699.70958397294
+  },
+  {
+   "group": "Level",
+   "segment": "Entry",
+   "n": 270,
+   "coverage": 0.7481481481481481,
+   "median_width": 84652.11768658643
+  },
+  {
+   "group": "Level",
+   "segment": "Executive",
+   "n": 96,
+   "coverage": 0.8020833333333334,
+   "median_width": 149585.56746959523
+  },
+  {
+   "group": "Level",
+   "segment": "Mid",
+   "n": 664,
+   "coverage": 0.7605421686746988,
+   "median_width": 89119.43091147809
+  },
+  {
+   "group": "Level",
+   "segment": "Senior",
+   "n": 1553,
+   "coverage": 0.7836445589182228,
+   "median_width": 127581.3191066228
+  },
+  {
+   "group": "Role",
+   "segment": "Analyst",
+   "n": 577,
+   "coverage": 0.7642980935875217,
+   "median_width": 95084.9265933935
+  },
+  {
+   "group": "Role",
+   "segment": "Architect",
+   "n": 67,
+   "coverage": 0.8208955223880597,
+   "median_width": 128334.11333623725
+  },
+  {
+   "group": "Role",
+   "segment": "Engineer",
+   "n": 680,
+   "coverage": 0.7941176470588235,
+   "median_width": 127095.72851496357
+  },
+  {
+   "group": "Role",
+   "segment": "Leadership",
+   "n": 180,
+   "coverage": 0.8,
+   "median_width": 124491.8147319458
+  },
+  {
+   "group": "Role",
+   "segment": "ML/AI",
+   "n": 386,
+   "coverage": 0.7409326424870466,
+   "median_width": 126071.46334244538
+  },
+  {
+   "group": "Role",
+   "segment": "Other",
+   "n": 19,
+   "coverage": 0.7894736842105263,
+   "median_width": 142178.50358349882
+  },
+  {
+   "group": "Role",
+   "segment": "Scientist",
+   "n": 674,
+   "coverage": 0.771513353115727,
+   "median_width": 112764.90216542137
+  },
+  {
+   "group": "All",
+   "segment": "All rows",
+   "n": 2583,
+   "coverage": 0.7746806039488966,
+   "median_width": 115244.53403693603
+  }
+ ]
+}

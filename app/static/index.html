@@ -67,6 +67,28 @@
   .empty { color: var(--muted); padding: 24px 0; text-align: center; }
   footer { margin-top: 28px; color: var(--muted); font-size: 12px; }
   .hidden { display: none; }
+  .ph { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 14px 0 2px; }
+  .ph:first-child { margin-top: 0; }
+  .prem { display: grid; grid-template-columns: 190px 1fr 140px; gap: 10px; align-items: center; font-size: 13px; padding: 3px 0; }
+  @media (max-width: 760px) { .prem { grid-template-columns: 120px 1fr 96px; } }
+  .prem .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .prem .val { text-align: right; font-variant-numeric: tabular-nums; }
+  .ci { position: relative; height: 14px; }
+  .ci::before { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--line); }
+  .ci .rng { position: absolute; top: 5px; height: 4px; border-radius: 2px; opacity: .55; }
+  .ci .dot { position: absolute; top: 1px; width: 12px; height: 12px; border-radius: 50%; transform: translateX(-50%); }
+  .heat { overflow-x: auto; }
+  .heat table { border-collapse: separate; border-spacing: 3px; width: 100%; min-width: 440px; font-size: 13px; }
+  .heat th { font-weight: 500; color: var(--muted); font-size: 12px; text-align: center; }
+  .heat th.rl { text-align: left; }
+  .heat td { text-align: center; padding: 8px 4px; border-radius: 4px; font-variant-numeric: tabular-nums; }
+  .heat td.na { color: var(--muted); opacity: .4; }
+  .heatpair { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 760px) { .heatpair { grid-template-columns: 1fr; } }
+  .rel { display: grid; grid-template-columns: 150px 1fr 56px; gap: 10px; align-items: center; font-size: 13px; padding: 2px 0; }
+  .relbar { position: relative; height: 12px; background: var(--bg); border-radius: 3px; }
+  .relbar b { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; }
+  .relbar i { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--neg); left: 80%; }
 </style>
 </head>
 <body>
@@ -77,6 +99,7 @@
   <nav role="tablist">
     <button role="tab" id="tab-est" aria-selected="true">Estimator</button>
     <button role="tab" id="tab-exp" aria-selected="false">Explorer</button>
+    <button role="tab" id="tab-ins" aria-selected="false">Insights</button>
   </nav>
 
   <!-- Estimator -->
@@ -121,6 +144,26 @@
       <div class="hist" id="xHist" aria-label="Salary distribution"></div>
       <div class="legend" style="margin:14px 0 8px"><span><i style="background:var(--band)"></i>25th&ndash;75th percentile</span><span><i style="background:var(--accent)"></i>median</span><span>Click a row to filter to it</span></div>
       <div id="xRows"></div>
+    </div>
+  </section>
+
+  <!-- Insights -->
+  <section id="ins" class="hidden">
+    <div class="card">
+      <h2>What moves salary?</h2>
+      <div class="muted" id="insIntro" style="margin-bottom:10px"></div>
+      <div id="insPrem"></div>
+      <div class="legend" style="margin-top:10px"><span><i style="background:var(--pos)"></i>higher pay</span><span><i style="background:var(--neg)"></i>lower pay</span><span><i style="background:var(--muted)"></i>no reliable effect (90% interval crosses zero)</span></div>
+    </div>
+    <div class="card">
+      <h2>Median pay by role and level</h2>
+      <div class="muted" style="margin-bottom:10px">Thousands of USD. Cells need 10+ people. Hover for the middle-50% band.</div>
+      <div id="insHeat"></div>
+    </div>
+    <div class="card">
+      <h2>Where can the model be trusted?</h2>
+      <div class="muted" style="margin-bottom:10px">Share of real salaries that landed inside the model's 80% range (out of fold). Near 80% is well calibrated; grey bars have fewer than 30 people.</div>
+      <div id="insRel"></div>
     </div>
   </section>
 
@@ -239,12 +282,68 @@ $('x_min_n').addEventListener('change', explore);
 for (const id of ['x_group', ...XF.map(f => 'x_' + f)]) $(id).addEventListener('change', explore);
 $('xReset').addEventListener('click', () => { for (const f of XF) $('x_' + f).value = ''; explore(); });
 
+// ---- Insights ----
+let insLoaded = false;
+async function loadInsights() {
+  if (insLoaded) return;
+  const res = await fetch('/api/insights');
+  if (!res.ok) { $('insIntro').textContent = (await res.json()).detail; return; }
+  const d = await res.json(); insLoaded = true;
+  $('insIntro').textContent = `Percent difference in salary holding the other factors constant, from ${d.rows.toLocaleString()} rows (${d.years[0]}–${d.years[1]}, median ${usd(d.median_salary)}). Lines show a 90% bootstrap interval.`;
+
+  const pr = d.premiums.map(p => ({...p, group: p.factor.split(':')[0]}));
+  const cap = 140, pos = v => (50 + Math.max(-cap, Math.min(cap, v)) / cap * 50).toFixed(1) + '%';
+  let html = '', last = '';
+  for (const g of ['Location', 'Level', 'Role', 'Company', 'Setup', 'Per year (2020-2023)']) {
+    const items = pr.filter(p => p.group === g).sort((a, b) => a.pct - b.pct);
+    if (!items.length) continue;
+    html += `<div class="ph">${esc(g === 'Per year (2020-2023)' ? 'Time trend' : g)}</div>`;
+    for (const p of items) {
+      const color = !p.significant ? 'var(--muted)' : p.pct > 0 ? 'var(--pos)' : 'var(--neg)';
+      const lo = Math.max(-cap, p.lo), hi = Math.min(cap, p.hi);
+      html += `<div class="prem"><div class="nm" title="${esc(p.factor)}">${esc(p.factor.replace(/^[^:]+: /, ''))}</div>
+        <div class="ci"><div class="rng" style="left:${pos(lo)};width:${(parseFloat(pos(hi)) - parseFloat(pos(lo))).toFixed(1)}%;background:${color}"></div><div class="dot" style="left:${pos(p.pct)};background:${color}"></div></div>
+        <div class="val" style="color:${p.significant ? (p.pct > 0 ? 'var(--pos)' : 'var(--neg)') : 'var(--muted)'}">${p.pct > 0 ? '+' : ''}${p.pct.toFixed(0)}% <span class="muted">(${p.lo.toFixed(0)}, ${p.hi.toFixed(0)})</span></div></div>`;
+    }
+  }
+  $('insPrem').innerHTML = html;
+
+  // heatmaps
+  const levels = ['Entry', 'Mid', 'Senior', 'Executive'];
+  const fams = [...new Set(d.bands.map(b => b.family))].sort();
+  const vmax = Math.max(...d.bands.map(b => b.median));
+  const heat = mk => `<div><div class="ph" style="margin-top:0">${esc(mk)}</div><div class="heat"><table><tr><th class="rl"></th>${levels.map(l => `<th>${l}</th>`).join('')}</tr>` +
+    fams.map(f => `<tr><th class="rl">${esc(f)}</th>` + levels.map(l => {
+      const b = d.bands.find(x => x.family === f && x.level === l && x.market === mk);
+      if (!b) return '<td class="na">–</td>';
+      const a = (0.12 + 0.75 * b.median / vmax).toFixed(2);
+      return `<td style="background:rgba(47,111,237,${a});color:${b.median / vmax > .55 ? '#fff' : 'inherit'}" title="${esc(f)}, ${l}, ${mk}: ${usd(b.p25)} to ${usd(b.p75)} (n=${b.n})">${Math.round(b.median / 1000)}<span style="font-size:10px;opacity:.7"> n${b.n}</span></td>`;
+    }).join('') + '</tr>').join('') + '</table></div></div>';
+  $('insHeat').innerHTML = `<div class="heatpair">${heat('US')}${heat('Outside US')}</div>`;
+
+  // reliability
+  let rh = '';
+  for (const g of ['Location', 'Level', 'Role']) {
+    rh += `<div class="ph">${g}</div>`;
+    for (const r of d.reliability.filter(x => x.group === g).sort((a, b) => b.n - a.n)) {
+      rh += `<div class="rel"><div title="${esc(r.segment)}">${esc(r.segment)} <span class="muted">n=${r.n}</span></div>
+        <div class="relbar"><b style="width:${(r.coverage * 100).toFixed(1)}%;background:${r.n < 30 ? 'var(--muted)' : 'var(--accent)'}"></b><i></i></div>
+        <div class="num">${(r.coverage * 100).toFixed(0)}%</div></div>`;
+    }
+  }
+  const all = d.reliability.find(x => x.group === 'All');
+  $('insRel').innerHTML = rh + `<p class="muted" style="margin-bottom:0">Overall ${(all.coverage * 100).toFixed(1)}% coverage; the median range is ${usd(all.median_width)} wide, so use ranges, not single numbers. The red line marks 80%.</p>`;
+}
+
 // ---- Tabs ----
 function tab(which) {
-  $('est').classList.toggle('hidden', which !== 'est'); $('exp').classList.toggle('hidden', which !== 'exp');
-  $('tab-est').setAttribute('aria-selected', which === 'est'); $('tab-exp').setAttribute('aria-selected', which === 'exp');
+  for (const [id, key] of [['est', 'est'], ['exp', 'exp'], ['ins', 'ins']]) {
+    $(id).classList.toggle('hidden', which !== key);
+    $('tab-' + id).setAttribute('aria-selected', which === key);
+  }
+  if (which === 'ins') loadInsights();
 }
-$('tab-est').onclick = () => tab('est'); $('tab-exp').onclick = () => tab('exp');
+$('tab-est').onclick = () => tab('est'); $('tab-exp').onclick = () => tab('exp'); $('tab-ins').onclick = () => tab('ins');
 init();
 </script>
 </body>

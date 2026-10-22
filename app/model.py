@@ -63,6 +63,7 @@ class SalaryModel:
         X = self._frame(pd.DataFrame([row]))
         low, mid, high = (float(self.models[k].predict(X)[0]) for k in ("low", "mid", "high"))
         low, mid, high = sorted((low, mid, high))
+        low = max(low, 0.0)  # a salary cannot be negative
         contrib = self.models["mid"].predict(X, pred_contrib=True)[0]
         base = float(contrib[-1])
         factors = sorted(

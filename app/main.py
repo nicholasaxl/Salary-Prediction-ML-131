@@ -2,6 +2,7 @@
 
 Run from the repo root:  python -m uvicorn app.main:app --reload
 """
+import json
 from pathlib import Path
 from typing import Optional
 
@@ -11,7 +12,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from .model import CAT, FEATURES, LABELS, MIN_SUPPORT, TARGET, SalaryModel, load_data
+from .model import CAT, FEATURES, LABELS, MIN_SUPPORT, ROOT, TARGET, SalaryModel, load_data
 
 STATIC = Path(__file__).parent / "static"
 app = FastAPI(title="Data science salary estimator")
@@ -118,6 +119,15 @@ def explore(
         "overall": {"median": float(s.median()), "p25": float(s.quantile(0.25)), "p75": float(s.quantile(0.75))},
         "histogram": {"counts": bins[0].tolist(), "edges": [float(e) for e in bins[1]]},
     }
+
+
+@app.get("/api/insights")
+def insights():
+    """Premiums, pay bands and reliability, precomputed by `python insights.py`."""
+    path = ROOT / "outputs" / "insights.json"
+    if not path.exists():
+        raise HTTPException(404, "outputs/insights.json is missing. Run `python insights.py` first.")
+    return json.loads(path.read_text())
 
 
 @app.get("/")
