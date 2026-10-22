@@ -5,3 +5,7 @@
 .venv/
 __pycache__/
 .ipynb_checkpoints/
+outputs/cache/
+outputs/cache_quick/
+outputs/experiments_log.txt
+outputs/*_log.txt

@@ -1,0 +1,7 @@
+{
+  "accuracy_winner": "search_Stacking",
+  "parsimonious_pick": "search_XGBoost",
+  "product_pick": "search_XGBoost",
+  "n_tied": 5,
+  "n_repeats": 3
+}
