@@ -8,9 +8,6 @@ Fixes over the R version:
 """
 from pathlib import Path
 
-import matplotlib
-
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -131,6 +128,7 @@ def shap_summary(df: pd.DataFrame) -> None:
 
 
 if __name__ == "__main__":
+    plt.switch_backend("Agg")  # script mode: write files, never open windows (kept out of import so notebooks render inline)
     raw = load(dedup=False)
     dedup = load(dedup=True)
     print(f"rows: raw={len(raw)}, deduplicated={len(dedup)} ({len(raw) - len(dedup)} duplicates)\n")
