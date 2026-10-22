@@ -54,3 +54,24 @@ The 10-90 interval covered about 77.5% of held-out salaries in cross-validation,
 - `salary_analysis.ipynb`: the full analysis with code (cells are collapsed by default in Jupyter/VS Code).
 - `salary_analysis_report.ipynb`: the same executed notebook with every code cell emptied, so it reads as a report (charts, tables and text only). Regenerate with `python tools/make_report.py` after executing the full notebook.
 - Section 3 shows the progress: a before/after figure, a scoreboard of every stage, and one large plot per stage (raw, deduplicate, log target, clean + features, tuned, best model).
+
+## Payband: the interactive web app
+
+An animated single-page site that tells the whole project as a story, with a written report under every step.
+
+```
+.venv/Scripts/python tools/export_web_data.py    # regenerate app/static/data/*.json from outputs/ (after re-running experiments)
+.venv/Scripts/python -m uvicorn app.main:app --port 8000   # then open http://localhost:8000
+.venv/Scripts/python tests/test_web_app.py       # smoke test: endpoints, data vs tables, report text vs numbers
+```
+
+| Section | What it does |
+|---|---|
+| Hero | A live example estimate drawn as the pay-band ribbon |
+| Story | All 3,755 salaries as a canvas scatter that morphs through the six stages as you scroll (raw, deduplicate, log target, clean + features, tuned, best model), with a training-fit switch and a written report per stage |
+| Models | Leaderboard of ten model families (default or tuned), a stepper through the decision rule, verdict cards and the interval comparison |
+| Estimator | Salary range, observed peers and the factors behind the estimate |
+| Insights | Pay premiums, role by level pay bands, where the model can be trusted, six business decisions |
+| Explorer | Group and filter the data |
+
+Design: dark "analyst workbench" with a light theme (toggle in the nav, remembers your choice), pay-band ribbons as the signature graphic, all motion off under `prefers-reduced-motion`. Report text is generated from `outputs/` by `tools/export_web_data.py`, so prose and numbers cannot drift apart. The site loads Google Fonts when online and falls back to system fonts offline. Displayed salary ranges are rounded to the nearest $1,000.
