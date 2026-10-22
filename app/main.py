@@ -121,6 +121,34 @@ def explore(
     }
 
 
+DATA_DIR = Path(__file__).parent / "static" / "data"
+
+
+def _data_file(name: str):
+    path = DATA_DIR / f"{name}.json"
+    if not path.exists():
+        raise HTTPException(404, f"{path.name} is missing. Run `python tools/export_web_data.py` first.")
+    return FileResponse(path, media_type="application/json", headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/api/story")
+def story():
+    """Points, per-stage predictions and decile lines for the animated progression."""
+    return _data_file("story")
+
+
+@app.get("/api/models")
+def models():
+    """Model search table, decision and interval comparison."""
+    return _data_file("models")
+
+
+@app.get("/api/report")
+def report():
+    """Written report for every stage and section."""
+    return _data_file("report")
+
+
 @app.get("/api/insights")
 def insights():
     """Premiums, pay bands and reliability, precomputed by `python insights.py`."""
