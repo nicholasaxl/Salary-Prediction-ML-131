@@ -1,0 +1,114 @@
+/* Payband design tokens.
+   Concept: a compensation analyst's workbench. Graphite-blue ground, one amber accent for salary figures,
+   cool blue for model data, semantic green/red only for better/worse. The signature graphic is the pay-band
+   ribbon (a P10-P90 range with a median tick). Dark first; light redefines every token. */
+
+:root {
+  color-scheme: dark;
+
+  /* ground and surfaces (blue-biased neutrals) */
+  --bg: #0c111a;
+  --bg-raise: #111927;
+  --surface: #162133;
+  --surface-2: #1c2a40;
+  --line: #243349;
+  --line-strong: #33465f;
+
+  /* text */
+  --fg: #e8edf6;
+  --fg-dim: #a3b1c7;
+  --fg-faint: #71819a;
+
+  /* accent: amber is reserved for salary figures, the median tick and focus */
+  --gold: #f2b84b;
+  --gold-ink: #1a1305;
+  --gold-soft: rgba(242, 184, 75, 0.16);
+
+  /* model data */
+  --blue: #6a9bf4;
+  --blue-soft: rgba(106, 155, 244, 0.18);
+  --band: rgba(106, 155, 244, 0.30);
+
+  /* semantic */
+  --good: #3fd09a;
+  --bad: #ff7b8c;
+  --warn: #f2b84b;
+
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 18px 40px -24px rgba(0, 0, 0, 0.7);
+  --canvas-point: rgba(106, 155, 244, 0.42);
+  --canvas-grid: rgba(163, 177, 199, 0.12);
+
+  /* type */
+  --font-display: "Bricolage Grotesque", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  --fs-0: 0.8125rem;
+  --fs-1: 0.9375rem;
+  --fs-2: 1.0625rem;
+  --fs-3: 1.375rem;
+  --fs-4: clamp(1.75rem, 1.2rem + 2.2vw, 2.5rem);
+  --fs-5: clamp(2.4rem, 1.2rem + 5vw, 4.4rem);
+
+  /* shape and motion */
+  --radius: 10px;
+  --radius-sm: 6px;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur: 600ms;
+  --maxw: 1180px;
+  --nav-h: 56px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #f3f6fb;
+    --bg-raise: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #eaf0f8;
+    --line: #d6deeb;
+    --line-strong: #b7c4d8;
+    --fg: #0f1826;
+    --fg-dim: #44556f;
+    --fg-faint: #6b7b94;
+    --gold: #b36b00;
+    --gold-ink: #fff8ea;
+    --gold-soft: rgba(179, 107, 0, 0.12);
+    --blue: #2a5fd8;
+    --blue-soft: rgba(42, 95, 216, 0.12);
+    --band: rgba(42, 95, 216, 0.22);
+    --good: #0e8a5f;
+    --bad: #c93a4d;
+    --warn: #b36b00;
+    --shadow: 0 1px 2px rgba(15, 24, 38, 0.06), 0 16px 34px -22px rgba(15, 24, 38, 0.28);
+    --canvas-point: rgba(42, 95, 216, 0.36);
+    --canvas-grid: rgba(15, 24, 38, 0.10);
+  }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f3f6fb;
+  --bg-raise: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #eaf0f8;
+  --line: #d6deeb;
+  --line-strong: #b7c4d8;
+  --fg: #0f1826;
+  --fg-dim: #44556f;
+  --fg-faint: #6b7b94;
+  --gold: #b36b00;
+  --gold-ink: #fff8ea;
+  --gold-soft: rgba(179, 107, 0, 0.12);
+  --blue: #2a5fd8;
+  --blue-soft: rgba(42, 95, 216, 0.12);
+  --band: rgba(42, 95, 216, 0.22);
+  --good: #0e8a5f;
+  --bad: #c93a4d;
+  --warn: #b36b00;
+  --shadow: 0 1px 2px rgba(15, 24, 38, 0.06), 0 16px 34px -22px rgba(15, 24, 38, 0.28);
+  --canvas-point: rgba(42, 95, 216, 0.36);
+  --canvas-grid: rgba(15, 24, 38, 0.10);
+}
+
+:root[data-theme="dark"] { color-scheme: dark; }

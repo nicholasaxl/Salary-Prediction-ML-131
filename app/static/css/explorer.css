@@ -1,0 +1,79 @@
+/* explorer section styles (owned by js/explorer.js) */
+.ex { display: grid; gap: clamp(14px, 2vw, 22px); }
+.ex [hidden] { display: none !important; }
+.ex > * { min-width: 0; }
+
+/* ---- filter bar */
+.ex-bar { display: grid; gap: 14px; padding-block: clamp(14px, 2vw, 20px); }
+.ex-field { display: grid; gap: 5px; min-width: 0; align-content: start; }
+.ex-field label { font: 600 11px/1.2 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-faint); }
+.ex-field label output { color: var(--gold); letter-spacing: 0; }
+.ex-field select {
+  width: 100%; min-width: 0; appearance: none; -webkit-appearance: none;
+  padding: 8px 30px 8px 10px; border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong); background-color: var(--bg-raise); color: var(--fg);
+  font: 500 var(--fs-0) var(--font-body); cursor: pointer; text-overflow: ellipsis;
+  background-image: linear-gradient(45deg, transparent 50%, var(--fg-faint) 50%), linear-gradient(135deg, var(--fg-faint) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%;
+  background-size: 5px 5px; background-repeat: no-repeat;
+  transition: border-color 160ms;
+}
+.ex-field select:hover { border-color: var(--fg-faint); }
+.ex-field select.is-set { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
+.ex-group select { font-size: var(--fs-1); font-weight: 600; border-color: var(--blue); max-width: 340px; }
+.ex-filters { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); gap: 12px; }
+.ex-lower { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; padding-top: 14px; border-top: 1px solid var(--line); }
+.ex-min { flex: 1 1 240px; max-width: 360px; }
+.ex-min input[type="range"] { width: 100%; accent-color: var(--gold); margin: 4px 0 0; }
+.ex-clear { border: 1px solid var(--line-strong); background: transparent; color: var(--fg); padding: 8px 16px; border-radius: 999px; font: 600 var(--fs-0) var(--font-body); cursor: pointer; transition: background 160ms, opacity 160ms; }
+.ex-clear:hover:not(:disabled) { background: var(--surface-2); }
+.ex-clear:disabled { opacity: 0.45; cursor: default; }
+@media (min-width: 900px) {
+  .ex-bar { grid-template-columns: minmax(200px, 260px) minmax(0, 1fr); align-items: start; column-gap: 24px; }
+  .ex-lower { grid-column: 1 / -1; }
+}
+
+/* ---- output */
+.ex-out { min-width: 0; transition: opacity 200ms 100ms; }
+.ex-out.is-loading { opacity: 0.7; }
+.ex-title { font-size: var(--fs-3); }
+.ex-summary { margin-top: 8px; min-height: 1.6em; }
+
+.ex-histwrap { position: relative; margin-top: 18px; padding-top: 22px; }
+.ex-hist { display: flex; align-items: flex-end; gap: 3px; height: 96px; border-bottom: 1px solid var(--line-strong); }
+.ex-bin { flex: 1 1 0; min-width: 0; background: var(--band); border-radius: 3px 3px 0 0; height: 0; transition: height 600ms var(--ease), background 160ms; }
+.ex-bin:hover { background: var(--blue); }
+.ex-hmed { position: absolute; top: 0; bottom: 18px; width: 0; border-left: 2px solid var(--gold); transition: left 600ms var(--ease); pointer-events: none; }
+.ex-hmed span { position: absolute; top: -2px; left: 6px; font-size: 11px; color: var(--gold); white-space: nowrap; }
+.ex-haxis { display: flex; justify-content: space-between; margin-top: 4px; font-size: 11px; color: var(--fg-faint); }
+.ex-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 18px 0 8px; font-size: 12px; color: var(--fg-faint); }
+.ex-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.ex-key { display: inline-block; border-radius: 3px; }
+.ex-key.iqr { width: 18px; height: 8px; background: var(--band); border: 1px solid var(--blue); }
+.ex-key.med { width: 3px; height: 14px; background: var(--gold); }
+
+/* ---- group rows */
+.ex-axis, .ex-row { display: grid; grid-template-columns: minmax(110px, 220px) minmax(0, 1fr) 54px 54px; gap: 14px; align-items: center; }
+.ex-axis-scale { position: relative; display: block; height: 16px; }
+.ex-axis-scale i { position: absolute; top: 0; transform: translateX(-50%); font: 500 11px/16px var(--font-mono); font-style: normal; color: var(--fg-faint); }
+.ex-axis-scale i:first-child { transform: none; }
+.ex-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.ex-row { width: 100%; text-align: left; border: 0; background: transparent; color: inherit; font: inherit; padding: 6px 8px; margin-inline: -8px; width: calc(100% + 16px); border-radius: var(--radius-sm); cursor: pointer; transition: background 140ms; }
+.ex-row:hover { background: var(--surface-2); }
+.ex-name { font-size: var(--fs-0); color: var(--fg); line-height: 1.3; overflow-wrap: anywhere; }
+.ex-track { position: relative; display: block; height: 18px; border-radius: 3px; background: linear-gradient(to right, var(--line) 1px, transparent 1px) 0 0 / var(--tw, 20%) 100%; }
+.ex-track::before { content: ""; position: absolute; left: 0; right: 0; top: 8px; height: 2px; background: color-mix(in srgb, var(--line) 70%, transparent); }
+.ex-iqr { position: absolute; top: 3px; bottom: 3px; background: var(--band); border: 1px solid var(--blue); border-radius: 6px; transition: left 600ms var(--ease), width 600ms var(--ease); }
+.ex-med { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1.5px; background: var(--gold); border-radius: 2px; transition: left 600ms var(--ease); }
+.ex-med-v { text-align: right; font-weight: 600; font-size: var(--fs-0); color: var(--gold); }
+.ex-n { text-align: right; font-size: 12px; color: var(--fg-faint); }
+.ex-empty { padding: 24px 0 8px; }
+@media (max-width: 640px) {
+  .ex-axis { grid-template-columns: minmax(0, 1fr); }
+  .ex-axis > span:first-child, .ex-axis > span:nth-child(3), .ex-axis > span:nth-child(4) { display: none; }
+  .ex-row { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "name med n" "track track track"; gap: 4px 12px; padding-block: 8px; }
+  .ex-name { grid-area: name; }
+  .ex-med-v { grid-area: med; }
+  .ex-n { grid-area: n; min-width: 40px; }
+  .ex-track { grid-area: track; }
+}

@@ -2,349 +2,118 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Data Science Salary Estimator</title>
-<style>
-  :root {
-    --bg: #f6f7f9; --card: #fff; --ink: #1b2430; --muted: #66707e; --line: #e3e6eb;
-    --accent: #2f6fed; --accent-soft: #dfe9fd; --pos: #1f9d6b; --neg: #d1495b; --band: #c9d9fb; --peer: #f0b429;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #11151b; --card: #1a2029; --ink: #e8ecf2; --muted: #95a0b0; --line: #2a323e;
-            --accent: #6b9bff; --accent-soft: #223355; --pos: #3ccf91; --neg: #ff7a8a; --band: #2c4375; --peer: #e0a526; }
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  .wrap { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; }
-  h1 { font-size: 22px; margin: 0 0 4px; }
-  .sub { color: var(--muted); margin: 0 0 20px; }
-  nav { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 20px; }
-  nav button { background: none; border: 0; padding: 10px 16px; font: inherit; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
-  nav button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
-  .grid { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
-  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
-  .card + .card { margin-top: 16px; }
-  label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 4px; text-transform: uppercase; letter-spacing: .04em; }
-  label:first-child { margin-top: 0; }
-  select, input[type=range] { width: 100%; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 7px 8px; }
-  input[type=range] { padding: 0; }
-  h2 { font-size: 15px; margin: 0 0 12px; }
-  .big { font-size: 34px; font-weight: 700; letter-spacing: -.01em; }
-  .big small { font-size: 15px; font-weight: 400; color: var(--muted); }
-  .muted { color: var(--muted); font-size: 13px; }
-  .scale { position: relative; height: 46px; margin: 18px 0 6px; }
-  .scale .track { position: absolute; top: 20px; left: 0; right: 0; height: 6px; background: var(--line); border-radius: 3px; }
-  .scale .band { position: absolute; top: 16px; height: 14px; background: var(--band); border-radius: 7px; }
-  .scale .mid { position: absolute; top: 10px; width: 3px; height: 26px; background: var(--accent); border-radius: 2px; }
-  .scale .peer { position: absolute; top: 33px; height: 5px; background: var(--peer); border-radius: 3px; }
-  .scale .tick { position: absolute; top: 0; font-size: 11px; color: var(--muted); transform: translateX(-50%); white-space: nowrap; }
-  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
-  .legend i { display: inline-block; width: 12px; height: 8px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
-  .warn { background: #fff4e0; color: #7a4b00; border: 1px solid #f0c987; border-radius: 8px; padding: 8px 12px; margin: 0 0 12px; font-size: 13px; }
-  @media (prefers-color-scheme: dark) { .warn { background: #3a2c10; color: #f0c987; border-color: #5c4519; } }
-  .factor { display: grid; grid-template-columns: 150px 1fr 76px; align-items: center; gap: 10px; padding: 4px 0; font-size: 13px; }
-  .factor .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .factor .nm span { color: var(--muted); }
-  .diverge { position: relative; height: 12px; }
-  .diverge::before { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--line); }
-  .diverge b { position: absolute; top: 0; height: 12px; border-radius: 2px; }
-  .factor .val { text-align: right; font-variant-numeric: tabular-nums; }
-  .pos { color: var(--pos); } .neg { color: var(--neg); }
-  .bar-row { display: grid; grid-template-columns: 170px 1fr 70px 46px; gap: 10px; align-items: center; padding: 3px 0; font-size: 13px; cursor: pointer; border-radius: 4px; }
-  .bar-row:hover { background: var(--bg); }
-  .bar-row .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .range { position: relative; height: 14px; }
-  .range .iqr { position: absolute; top: 3px; height: 8px; background: var(--band); border-radius: 4px; }
-  .range .med { position: absolute; top: 0; width: 3px; height: 14px; background: var(--accent); border-radius: 2px; }
-  .num { text-align: right; font-variant-numeric: tabular-nums; }
-  .hist { display: flex; align-items: flex-end; gap: 2px; height: 80px; }
-  .hist div { flex: 1; background: var(--band); border-radius: 2px 2px 0 0; min-height: 1px; }
-  .filters { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 12px; }
-  .filters label { margin: 0 0 3px; }
-  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-  button.link { background: none; border: 0; color: var(--accent); cursor: pointer; font: inherit; padding: 0; }
-  .empty { color: var(--muted); padding: 24px 0; text-align: center; }
-  footer { margin-top: 28px; color: var(--muted); font-size: 12px; }
-  .hidden { display: none; }
-  .ph { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 14px 0 2px; }
-  .ph:first-child { margin-top: 0; }
-  .prem { display: grid; grid-template-columns: 190px 1fr 140px; gap: 10px; align-items: center; font-size: 13px; padding: 3px 0; }
-  @media (max-width: 760px) { .prem { grid-template-columns: 120px 1fr 96px; } }
-  .prem .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .prem .val { text-align: right; font-variant-numeric: tabular-nums; }
-  .ci { position: relative; height: 14px; }
-  .ci::before { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--line); }
-  .ci .rng { position: absolute; top: 5px; height: 4px; border-radius: 2px; opacity: .55; }
-  .ci .dot { position: absolute; top: 1px; width: 12px; height: 12px; border-radius: 50%; transform: translateX(-50%); }
-  .heat { overflow-x: auto; }
-  .heat table { border-collapse: separate; border-spacing: 3px; width: 100%; min-width: 440px; font-size: 13px; }
-  .heat th { font-weight: 500; color: var(--muted); font-size: 12px; text-align: center; }
-  .heat th.rl { text-align: left; }
-  .heat td { text-align: center; padding: 8px 4px; border-radius: 4px; font-variant-numeric: tabular-nums; }
-  .heat td.na { color: var(--muted); opacity: .4; }
-  .heatpair { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  @media (max-width: 760px) { .heatpair { grid-template-columns: 1fr; } }
-  .rel { display: grid; grid-template-columns: 150px 1fr 56px; gap: 10px; align-items: center; font-size: 13px; padding: 2px 0; }
-  .relbar { position: relative; height: 12px; background: var(--bg); border-radius: 3px; }
-  .relbar b { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; }
-  .relbar i { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--neg); left: 80%; }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Payband</title>
+<meta name="description" content="Data science salary ranges, an honest model comparison, and what a business can do with them.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%230c111a%27/%3E%3Crect x=%274%27 y=%2712%27 width=%2724%27 height=%278%27 rx=%274%27 fill=%27%236a9bf4%27 fill-opacity=%27.55%27/%3E%3Crect x=%2718%27 y=%277%27 width=%274%27 height=%2718%27 rx=%272%27 fill=%27%23f2b84b%27/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/static/css/tokens.css">
+<link rel="stylesheet" href="/static/css/app.css">
+<link rel="stylesheet" href="/static/css/sections.css">
+<link rel="stylesheet" href="/static/css/story.css">
+<link rel="stylesheet" href="/static/css/arena.css">
+<link rel="stylesheet" href="/static/css/estimator.css">
+<link rel="stylesheet" href="/static/css/insights.css">
+<link rel="stylesheet" href="/static/css/explorer.css">
 </head>
 <body>
-<div class="wrap">
-  <h1>Data Science Salary Estimator</h1>
-  <p class="sub">Salary ranges from a quantile model trained on 2,583 de-duplicated survey rows (2020&ndash;2023, USD). Treat it as a range, not a quote.</p>
-
-  <nav role="tablist">
-    <button role="tab" id="tab-est" aria-selected="true">Estimator</button>
-    <button role="tab" id="tab-exp" aria-selected="false">Explorer</button>
-    <button role="tab" id="tab-ins" aria-selected="false">Insights</button>
-  </nav>
-
-  <!-- Estimator -->
-  <section id="est" class="grid">
-    <div class="card">
-      <label for="job_title">Job title</label><select id="job_title"></select>
-      <label for="experience_level">Experience level</label><select id="experience_level"></select>
-      <label for="company_location">Company location</label><select id="company_location"></select>
-      <label for="company_size">Company size</label><select id="company_size"></select>
-      <label for="employment_type">Employment type</label><select id="employment_type"></select>
-      <label for="remote_ratio">Work setup</label><select id="remote_ratio"></select>
-      <label for="work_year">Year</label><select id="work_year"></select>
+<nav class="nav" aria-label="Sections">
+  <div class="nav-in">
+    <a class="brand" href="#top"><i class="brand-mark" aria-hidden="true"></i><span>Payband</span></a>
+    <div class="nav-links">
+      <a href="#story">Story</a>
+      <a href="#arena">Models</a>
+      <a href="#estimate">Estimator</a>
+      <a href="#insights">Insights</a>
+      <a href="#explore">Explorer</a>
     </div>
+    <button class="icon-btn" id="theme" type="button" aria-label="Switch between dark and light theme" title="Theme">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2 6 6M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8 6 18M18 6l1.8-1.8"/></svg>
+    </button>
+  </div>
+</nav>
+
+<main id="top" class="wrap">
+  <header class="hero" id="hero">
     <div>
-      <div class="card" id="result"><div class="empty">Loading&hellip;</div></div>
-      <div class="card hidden" id="why">
-        <h2>What moves this estimate</h2>
-        <div class="muted" id="whyNote" style="margin-bottom:8px"></div>
-        <div id="factors"></div>
+      <p class="eyebrow">Data science salaries, 2020&ndash;2023</p>
+      <h1>A salary is a <em>range</em>, not a number.</h1>
+      <p class="lead">A class project rebuilt with honest evaluation: duplicate rows removed, ten models compared under one rule, and a plain account of what the data can and cannot tell a business.</p>
+      <div class="hero-meta">
+        <div class="stat"><b id="h-rows">2,583</b><span>unique salaries</span></div>
+        <div class="stat"><b id="h-r2">0.41</b><span>best held-out R&sup2;</span></div>
+        <div class="stat"><b id="h-noise">&plusmn;30%</b><span>spread between identical profiles</span></div>
+      </div>
+      <div class="cta-row">
+        <a class="btn primary" href="#story">Follow the story</a>
+        <a class="btn" href="#estimate">Estimate a salary</a>
       </div>
     </div>
+    <div class="card hero-card" aria-live="polite">
+      <p class="faint mono">LIVE EXAMPLE &middot; Senior Data Scientist &middot; US &middot; medium company &middot; 2023</p>
+      <p class="hero-range" id="hero-range"><span class="num">&hellip;</span></p>
+      <p class="muted">most likely <b class="num" id="hero-mid" style="color:var(--gold)">&hellip;</b> a year</p>
+      <div id="hero-ribbon"></div>
+      <p class="faint" id="hero-peers"></p>
+    </div>
+  </header>
+
+  <section class="section" id="story" aria-labelledby="story-h">
+    <div class="sec-head">
+      <p class="eyebrow">The study</p>
+      <h2 id="story-h">From a messy first pass to an honest model</h2>
+      <p class="lead">Every dot is one person: where the model said their salary would land, against what they actually earned. Step through each change and watch what it moved.</p>
+    </div>
+    <div id="story-mount"><p class="mount-loading">Loading the story&hellip;</p></div>
   </section>
 
-  <!-- Explorer -->
-  <section id="exp" class="hidden">
-    <div class="card">
-      <div class="filters">
-        <div><label for="x_group">Group by</label><select id="x_group"></select></div>
-        <div><label for="x_job_title">Job title</label><select id="x_job_title"></select></div>
-        <div><label for="x_experience_level">Experience</label><select id="x_experience_level"></select></div>
-        <div><label for="x_company_location">Location</label><select id="x_company_location"></select></div>
-        <div><label for="x_company_size">Company size</label><select id="x_company_size"></select></div>
-        <div><label for="x_employment_type">Employment type</label><select id="x_employment_type"></select></div>
-        <div><label for="x_remote_ratio">Work setup</label><select id="x_remote_ratio"></select></div>
-        <div><label for="x_work_year">Year</label><select id="x_work_year"></select></div>
-        <div><label for="x_min_n">Min rows per group: <b id="x_min_n_val">10</b></label><input type="range" id="x_min_n" min="1" max="100" value="10"></div>
-      </div>
+  <section class="section" id="arena" aria-labelledby="arena-h">
+    <div class="sec-head">
+      <p class="eyebrow">The models</p>
+      <h2 id="arena-h">Ten model families, one rule for picking</h2>
+      <p class="lead">Boosting, forests, a linear model, a neural net and a blend all land within a hair of each other. The rule decides before the results are known which counts as best.</p>
     </div>
-    <div class="card">
-      <div class="row"><h2 id="xTitle">Salary by group</h2><button class="link" id="xReset">Clear filters</button></div>
-      <div class="muted" id="xSummary" style="margin-bottom:10px"></div>
-      <div class="hist" id="xHist" aria-label="Salary distribution"></div>
-      <div class="legend" style="margin:14px 0 8px"><span><i style="background:var(--band)"></i>25th&ndash;75th percentile</span><span><i style="background:var(--accent)"></i>median</span><span>Click a row to filter to it</span></div>
-      <div id="xRows"></div>
-    </div>
+    <div id="arena-mount"><p class="mount-loading">Loading the models&hellip;</p></div>
   </section>
 
-  <!-- Insights -->
-  <section id="ins" class="hidden">
-    <div class="card">
-      <h2>What moves salary?</h2>
-      <div class="muted" id="insIntro" style="margin-bottom:10px"></div>
-      <div id="insPrem"></div>
-      <div class="legend" style="margin-top:10px"><span><i style="background:var(--pos)"></i>higher pay</span><span><i style="background:var(--neg)"></i>lower pay</span><span><i style="background:var(--muted)"></i>no reliable effect (90% interval crosses zero)</span></div>
+  <section class="section" id="estimate" aria-labelledby="estimate-h">
+    <div class="sec-head">
+      <p class="eyebrow">Try it</p>
+      <h2 id="estimate-h">Estimate a salary range</h2>
+      <p class="lead">Describe a role. The estimate is a range with a most likely value, set beside what comparable people reported.</p>
     </div>
-    <div class="card">
-      <h2>Median pay by role and level</h2>
-      <div class="muted" style="margin-bottom:10px">Thousands of USD. Cells need 10+ people. Hover for the middle-50% band.</div>
-      <div id="insHeat"></div>
-    </div>
-    <div class="card">
-      <h2>Where can the model be trusted?</h2>
-      <div class="muted" style="margin-bottom:10px">Share of real salaries that landed inside the model's 80% range (out of fold). Near 80% is well calibrated; grey bars have fewer than 30 people.</div>
-      <div id="insRel"></div>
-    </div>
+    <div id="estimate-mount"><p class="mount-loading">Loading the estimator&hellip;</p></div>
   </section>
 
-  <footer>
-    Estimates come from a 10th&ndash;90th percentile LightGBM model. In cross-validation that interval covered about 77.5% of held-out salaries (nominal 80%), and the median interval was about $115k wide: features like title, level and location explain only around 40% of salary variance. The data is a self-reported survey sample, so effects shown are associations, not causes.
+  <section class="section" id="insights" aria-labelledby="insights-h">
+    <div class="sec-head">
+      <p class="eyebrow">What it means</p>
+      <h2 id="insights-h">What moves pay, and what a business can do about it</h2>
+      <p class="lead">Location and seniority dominate. Role matters less, and remote work does not show a pay penalty.</p>
+    </div>
+    <div id="insights-mount"><p class="mount-loading">Loading the insights&hellip;</p></div>
+  </section>
+
+  <section class="section" id="explore" aria-labelledby="explore-h">
+    <div class="sec-head">
+      <p class="eyebrow">The data</p>
+      <h2 id="explore-h">Explore the salaries yourself</h2>
+      <p class="lead">Group and filter the rows by any field.</p>
+    </div>
+    <div id="explore-mount"><p class="mount-loading">Loading the explorer&hellip;</p></div>
+  </section>
+
+  <footer class="site">
+    <div id="limits-mount"></div>
+    <div class="foot-links">
+      <a id="repo-link" href="https://github.com/nicholasaxl/Salary-Prediction-ML-131">Repository</a>
+      <span class="faint">Full analysis in <code>salary_analysis.ipynb</code>; code-free report in <code>salary_analysis_report.ipynb</code>.</span>
+    </div>
   </footer>
-</div>
+</main>
 
-<script>
-const $ = id => document.getElementById(id);
-const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const usd = n => '$' + Math.round(n).toLocaleString('en-US');
-const k = n => '$' + Math.round(n / 1000) + 'k';
-const CAT_FIELDS = ['job_title', 'experience_level', 'company_location', 'company_size', 'employment_type'];
-const GROUPS = {job_title: 'Job title', experience_level: 'Experience level', company_location: 'Company location',
-                company_size: 'Company size', employment_type: 'Employment type', work_year: 'Year', remote_ratio: 'Work setup'};
-let OPT = null;
-
-function fill(sel, items, any) {
-  sel.innerHTML = (any ? `<option value="">${esc(any)}</option>` : '') +
-    items.map(o => `<option value="${esc(o.value)}">${esc(o.label)}${o.n != null ? ` (${o.n})` : ''}</option>`).join('');
-}
-
-async function init() {
-  const r = await (await fetch('/api/options')).json();
-  OPT = r.options;
-  const years = OPT.work_year.map(y => ({value: y, label: y}));
-  for (const f of CAT_FIELDS) { fill($(f), OPT[f]); fill($('x_' + f), OPT[f], 'All'); }
-  fill($('remote_ratio'), OPT.remote_ratio); fill($('x_remote_ratio'), OPT.remote_ratio, 'All');
-  fill($('work_year'), years); fill($('x_work_year'), years, 'All');
-  fill($('x_group'), Object.entries(GROUPS).map(([value, label]) => ({value, label})));
-  // sensible defaults
-  $('job_title').value = 'Data Scientist'; $('experience_level').value = 'MI'; $('company_location').value = 'US';
-  $('company_size').value = 'M'; $('employment_type').value = 'FT'; $('remote_ratio').value = '0';
-  $('work_year').value = String(Math.max(...OPT.work_year.map(Number)));
-  $('x_group').value = 'job_title';
-  estimate(); explore();
-}
-
-// ---- Estimator ----
-let estTimer;
-async function estimate() {
-  const body = {};
-  for (const f of [...CAT_FIELDS, 'remote_ratio', 'work_year']) body[f] = $(f).value;
-  body.remote_ratio = +body.remote_ratio; body.work_year = +body.work_year;
-  const res = await fetch('/api/predict', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-  if (!res.ok) { $('result').innerHTML = `<div class="empty">Could not estimate: ${esc((await res.json()).detail)}</div>`; return; }
-  render(await res.json());
-}
-
-function render(r) {
-  const p = r.peers, has = p && p.n > 0;
-  const lo = Math.min(r.low, has ? p.p25 : r.low) * 0.9, hi = Math.max(r.high, has ? p.p75 : r.high) * 1.05;
-  const pos = v => ((v - lo) / (hi - lo) * 100).toFixed(2) + '%';
-  const w = (a, b) => ((b - a) / (hi - lo) * 100).toFixed(2) + '%';
-  $('result').innerHTML = `
-    ${r.warnings.map(x => `<div class="warn">${esc(x)}</div>`).join('')}
-    <div class="muted">Estimated salary (80% range)</div>
-    <div class="big">${usd(r.low)} &ndash; ${usd(r.high)} <small>per year</small></div>
-    <div class="muted">Most likely around <b>${usd(r.mid)}</b></div>
-    <div class="scale" aria-hidden="true">
-      <div class="track"></div>
-      <div class="band" style="left:${pos(r.low)};width:${w(r.low, r.high)}"></div>
-      <div class="mid" style="left:${pos(r.mid)}"></div>
-      ${has ? `<div class="peer" style="left:${pos(p.p25)};width:${w(p.p25, p.p75)}"></div>` : ''}
-      <span class="tick" style="left:${pos(r.low)}">${k(r.low)}</span>
-      <span class="tick" style="left:${pos(r.high)}">${k(r.high)}</span>
-    </div>
-    <div class="legend"><span><i style="background:var(--band)"></i>model 10&ndash;90% range</span><span><i style="background:var(--accent)"></i>model median</span>${has ? '<span><i style="background:var(--peer)"></i>observed peers 25&ndash;75%</span>' : ''}</div>
-    <p class="muted" style="margin-bottom:0">${has
-      ? `${p.n} observed rows with the ${esc(p.match)}: median ${usd(p.median)}, middle half ${usd(p.p25)}&ndash;${usd(p.p75)}.`
-      : 'No comparable observed rows.'}</p>`;
-
-  const max = Math.max(...r.factors.map(f => Math.abs(f.effect)), 1);
-  $('why').classList.remove('hidden');
-  $('whyNote').textContent = `Starting from a typical salary of ${usd(r.baseline)}, each factor adds or subtracts:`;
-  $('factors').innerHTML = r.factors.map(f => {
-    const pct = Math.abs(f.effect) / max * 50, neg = f.effect < 0;
-    return `<div class="factor"><div class="nm" title="${esc(f.label)}">${esc(f.label)} <span>${esc(f.value)}</span></div>
-      <div class="diverge"><b style="${neg ? 'right' : 'left'}:50%;width:${pct}%;background:var(--${neg ? 'neg' : 'pos'})"></b></div>
-      <div class="val ${neg ? 'neg' : 'pos'}">${neg ? '&minus;' : '+'}${usd(Math.abs(f.effect))}</div></div>`;
-  }).join('');
-}
-
-for (const f of [...CAT_FIELDS, 'remote_ratio', 'work_year']) $(f).addEventListener('change', () => { clearTimeout(estTimer); estTimer = setTimeout(estimate, 80); });
-
-// ---- Explorer ----
-const XF = ['job_title', 'experience_level', 'company_location', 'company_size', 'employment_type', 'remote_ratio', 'work_year'];
-async function explore() {
-  const q = new URLSearchParams({group_by: $('x_group').value, min_n: $('x_min_n').value});
-  for (const f of XF) if ($('x_' + f).value !== '') q.set(f, $('x_' + f).value);
-  const r = await (await fetch('/api/explore?' + q)).json();
-  $('xTitle').textContent = 'Salary by ' + GROUPS[$('x_group').value].toLowerCase();
-  if (!r.rows) { $('xSummary').textContent = ''; $('xHist').innerHTML = ''; $('xRows').innerHTML = '<div class="empty">No rows match these filters.</div>'; return; }
-  $('xSummary').textContent = `${r.rows.toLocaleString()} rows, median ${usd(r.overall.median)} (middle half ${usd(r.overall.p25)}–${usd(r.overall.p75)})` +
-    (r.hidden_groups ? ` · ${r.hidden_groups} small group${r.hidden_groups > 1 ? 's' : ''} hidden` : '');
-  const hm = Math.max(...r.histogram.counts, 1);
-  $('xHist').innerHTML = r.histogram.counts.map((c, i) =>
-    `<div style="height:${c / hm * 100}%" title="${k(r.histogram.edges[i])}–${k(r.histogram.edges[i + 1])}: ${c} rows"></div>`).join('');
-  if (!r.groups.length) { $('xRows').innerHTML = '<div class="empty">Every group is below the minimum size. Lower the slider.</div>'; return; }
-  const lo = 0, hi = Math.max(...r.groups.map(g => g.p75)) * 1.05;
-  const pct = v => (v / hi * 100).toFixed(2) + '%';
-  $('xRows').innerHTML = r.groups.map(g => `
-    <div class="bar-row" data-key="${esc(g.key)}" title="min ${usd(g.min)}, max ${usd(g.max)}, mean ${usd(g.mean)}">
-      <div class="nm">${esc(g.label)}</div>
-      <div class="range"><div class="iqr" style="left:${pct(g.p25)};width:${((g.p75 - g.p25) / hi * 100).toFixed(2)}%"></div><div class="med" style="left:${pct(g.median)}"></div></div>
-      <div class="num">${k(g.median)}</div><div class="num muted">${g.n}</div></div>`).join('');
-}
-$('xRows').addEventListener('click', e => {
-  const row = e.target.closest('.bar-row'); if (!row) return;
-  const g = $('x_group').value, sel = $('x_' + g);
-  if (sel && XF.includes(g)) { sel.value = row.dataset.key; explore(); }
-});
-$('x_min_n').addEventListener('input', () => { $('x_min_n_val').textContent = $('x_min_n').value; });
-$('x_min_n').addEventListener('change', explore);
-for (const id of ['x_group', ...XF.map(f => 'x_' + f)]) $(id).addEventListener('change', explore);
-$('xReset').addEventListener('click', () => { for (const f of XF) $('x_' + f).value = ''; explore(); });
-
-// ---- Insights ----
-let insLoaded = false;
-async function loadInsights() {
-  if (insLoaded) return;
-  const res = await fetch('/api/insights');
-  if (!res.ok) { $('insIntro').textContent = (await res.json()).detail; return; }
-  const d = await res.json(); insLoaded = true;
-  $('insIntro').textContent = `Percent difference in salary holding the other factors constant, from ${d.rows.toLocaleString()} rows (${d.years[0]}–${d.years[1]}, median ${usd(d.median_salary)}). Lines show a 90% bootstrap interval.`;
-
-  const pr = d.premiums.map(p => ({...p, group: p.factor.split(':')[0]}));
-  const cap = 140, pos = v => (50 + Math.max(-cap, Math.min(cap, v)) / cap * 50).toFixed(1) + '%';
-  let html = '', last = '';
-  for (const g of ['Location', 'Level', 'Role', 'Company', 'Setup', 'Per year (2020-2023)']) {
-    const items = pr.filter(p => p.group === g).sort((a, b) => a.pct - b.pct);
-    if (!items.length) continue;
-    html += `<div class="ph">${esc(g === 'Per year (2020-2023)' ? 'Time trend' : g)}</div>`;
-    for (const p of items) {
-      const color = !p.significant ? 'var(--muted)' : p.pct > 0 ? 'var(--pos)' : 'var(--neg)';
-      const lo = Math.max(-cap, p.lo), hi = Math.min(cap, p.hi);
-      html += `<div class="prem"><div class="nm" title="${esc(p.factor)}">${esc(p.factor.replace(/^[^:]+: /, ''))}</div>
-        <div class="ci"><div class="rng" style="left:${pos(lo)};width:${(parseFloat(pos(hi)) - parseFloat(pos(lo))).toFixed(1)}%;background:${color}"></div><div class="dot" style="left:${pos(p.pct)};background:${color}"></div></div>
-        <div class="val" style="color:${p.significant ? (p.pct > 0 ? 'var(--pos)' : 'var(--neg)') : 'var(--muted)'}">${p.pct > 0 ? '+' : ''}${p.pct.toFixed(0)}% <span class="muted">(${p.lo.toFixed(0)}, ${p.hi.toFixed(0)})</span></div></div>`;
-    }
-  }
-  $('insPrem').innerHTML = html;
-
-  // heatmaps
-  const levels = ['Entry', 'Mid', 'Senior', 'Executive'];
-  const fams = [...new Set(d.bands.map(b => b.family))].sort();
-  const vmax = Math.max(...d.bands.map(b => b.median));
-  const heat = mk => `<div><div class="ph" style="margin-top:0">${esc(mk)}</div><div class="heat"><table><tr><th class="rl"></th>${levels.map(l => `<th>${l}</th>`).join('')}</tr>` +
-    fams.map(f => `<tr><th class="rl">${esc(f)}</th>` + levels.map(l => {
-      const b = d.bands.find(x => x.family === f && x.level === l && x.market === mk);
-      if (!b) return '<td class="na">–</td>';
-      const a = (0.12 + 0.75 * b.median / vmax).toFixed(2);
-      return `<td style="background:rgba(47,111,237,${a});color:${b.median / vmax > .55 ? '#fff' : 'inherit'}" title="${esc(f)}, ${l}, ${mk}: ${usd(b.p25)} to ${usd(b.p75)} (n=${b.n})">${Math.round(b.median / 1000)}<span style="font-size:10px;opacity:.7"> n${b.n}</span></td>`;
-    }).join('') + '</tr>').join('') + '</table></div></div>';
-  $('insHeat').innerHTML = `<div class="heatpair">${heat('US')}${heat('Outside US')}</div>`;
-
-  // reliability
-  let rh = '';
-  for (const g of ['Location', 'Level', 'Role']) {
-    rh += `<div class="ph">${g}</div>`;
-    for (const r of d.reliability.filter(x => x.group === g).sort((a, b) => b.n - a.n)) {
-      rh += `<div class="rel"><div title="${esc(r.segment)}">${esc(r.segment)} <span class="muted">n=${r.n}</span></div>
-        <div class="relbar"><b style="width:${(r.coverage * 100).toFixed(1)}%;background:${r.n < 30 ? 'var(--muted)' : 'var(--accent)'}"></b><i></i></div>
-        <div class="num">${(r.coverage * 100).toFixed(0)}%</div></div>`;
-    }
-  }
-  const all = d.reliability.find(x => x.group === 'All');
-  $('insRel').innerHTML = rh + `<p class="muted" style="margin-bottom:0">Overall ${(all.coverage * 100).toFixed(1)}% coverage; the median range is ${usd(all.median_width)} wide, so use ranges, not single numbers. The red line marks 80%.</p>`;
-}
-
-// ---- Tabs ----
-function tab(which) {
-  for (const [id, key] of [['est', 'est'], ['exp', 'exp'], ['ins', 'ins']]) {
-    $(id).classList.toggle('hidden', which !== key);
-    $('tab-' + id).setAttribute('aria-selected', which === key);
-  }
-  if (which === 'ins') loadInsights();
-}
-$('tab-est').onclick = () => tab('est'); $('tab-exp').onclick = () => tab('exp'); $('tab-ins').onclick = () => tab('ins');
-init();
-</script>
+<script type="module" src="/static/js/main.js"></script>
 </body>
 </html>

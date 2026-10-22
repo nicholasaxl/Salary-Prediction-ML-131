@@ -9,3 +9,4 @@ outputs/cache/
 outputs/cache_quick/
 outputs/experiments_log.txt
 outputs/*_log.txt
+.playwright-mcp/

@@ -1,0 +1,5 @@
+/* Shared section-level styles (hero card). Section modules own their own css/<name>.css. */
+.hero-card { padding: clamp(18px, 2.6vw, 28px); }
+.hero-range { font: 700 clamp(1.9rem, 1.2rem + 2.4vw, 3rem)/1.05 var(--font-display); letter-spacing: -0.02em; margin: 10px 0 6px; color: var(--fg); }
+.hero-range .num { font-family: var(--font-display); }
+.hero-card #hero-ribbon { margin-top: 14px; }
