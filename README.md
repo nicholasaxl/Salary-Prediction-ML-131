@@ -48,3 +48,9 @@ The 10-90 interval covered about 77.5% of held-out salaries in cross-validation,
 - **CatBoost was evaluated at default settings only.** Its nested tuning run was stopped to save about 25 minutes, so there is no tuned CatBoost result.
 - TabPFN was not tested (needs a pretrained-weights download); the scikit-learn MLP stands in as the neural option.
 - The web app keeps LightGBM quantile models for the 10-90% range, a deliberate exception to the rule's XGBoost pick (see the notebook).
+
+## Notebooks
+
+- `salary_analysis.ipynb`: the full analysis with code (cells are collapsed by default in Jupyter/VS Code).
+- `salary_analysis_report.ipynb`: the same executed notebook with every code cell emptied, so it reads as a report (charts, tables and text only). Regenerate with `python tools/make_report.py` after executing the full notebook.
+- Section 3 shows the progress: a before/after figure, a scoreboard of every stage, and one large plot per stage (raw, deduplicate, log target, clean + features, tuned, best model).

@@ -4,7 +4,11 @@
 """
 import nbformat as nbf
 
-md, code = nbf.v4.new_markdown_cell, nbf.v4.new_code_cell
+def md(text):
+    return nbf.v4.new_markdown_cell(text.replace("$", "\\$"))
+
+
+code = nbf.v4.new_code_cell
 cells = []
 
 # ------------------------------------------------------------------ setup
@@ -24,7 +28,10 @@ import matplotlib.pyplot as plt, seaborn as sns
 from matplotlib.ticker import FuncFormatter
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
-from IPython.display import Markdown, display
+from IPython.display import Markdown as _Markdown, display
+
+def Markdown(text):
+    return _Markdown(text.replace('$', '\\$'))  # a bare $ pair would render as an equation
 
 plt.rcParams.update({'figure.dpi': 110, 'axes.spines.top': False, 'axes.spines.right': False,
                      'axes.grid': True, 'grid.alpha': .25, 'axes.titleweight': 'bold', 'axes.titlesize': 11})
@@ -91,46 +98,144 @@ ax.rename(index={'RF': 'Random forest', 'LGBM': 'Boosting (LightGBM)'}).plot.bar
 plt.xlabel('CV RMSE (USD)'); plt.ylabel(''); plt.legend(loc='upper center', bbox_to_anchor=(.5, -.25), ncol=2); plt.tight_layout()"""),
 ]
 
-# ------------------------------------------------------------------ 3 progression
+# ------------------------------------------------------------------ 3 progress (presentation)
 cells += [
-    md("""## 3. From the first messy plot to the final one
-Each panel is the **out-of-fold** prediction for every row (the model never saw that row) against the actual salary. The red dashed line is a perfect prediction; the orange line is the average prediction within deciles of actual salary, so the gap between orange and red shows how much the model shrinks toward the middle.
+    md("""## 3. The progress, at a glance
 
-Stage 0 uses the raw, duplicated data (a different, leaky test set); stages 1-4 use the deduplicated rows. Stage 4 = tuned with nested cross-validation."""),
-    code("""STAGES = ['0 Raw (R-style)', '1 Deduplicate', '2 Log target', '3 Clean + features', '4 Tuned']
-fig, axes = plt.subplots(2, 5, figsize=(22, 8), sharex=True, sharey=True)
-for r, (tag, title) in enumerate([('RF', 'Random forest'), ('LGBM', 'Boosting (LightGBM)')]):
+**The short version.** The original R report plotted predictions on the *training* rows, where a flexible model looks excellent. Held-out scoring on the cleaned data tells a more modest and more trustworthy story. This section shows that gap, then walks through each step one stage at a time (section 3.3 onwards)."""),
+    code("""from sklearn.metrics import r2_score
+STAGE_NAMES = {0: 'Raw (R-style, leaky)', 1: 'Deduplicate', 2: 'Log target', 3: 'Clean + features', 4: 'Tuned', 5: 'Best model'}
+LIM = 460000
+
+def decile_line(y, p):
+    edges = np.quantile(y, np.linspace(0, 1, 11)); idx = np.clip(np.digitize(y, edges[1:-1]), 0, 9)
+    return [y[idx == k].mean() for k in range(10)], [p[idx == k].mean() for k in range(10)]
+
+def draw(a, y, p, title, prev=None, dot=BLUE, stats=None):
+    a.scatter(y, p, s=9, alpha=.28, color=dot, linewidths=0)
+    if prev is not None:
+        a.plot(*decile_line(*prev), '--', color=GREY, lw=2, label='previous stage (avg prediction)')
+    a.plot(*decile_line(y, p), '-o', color=GOLD, ms=5, lw=2.8, label='this stage (avg prediction)')
+    a.plot([0, LIM], [0, LIM], '--', color=RED, lw=1.4, label='perfect prediction')
+    a.set_xlim(0, LIM); a.set_ylim(0, LIM); a.set_aspect('equal')
+    a.xaxis.set_major_formatter(kfmt); a.yaxis.set_major_formatter(kfmt)
+    a.set_xlabel('Actual salary (USD)'); a.set_title(title, fontsize=12)
+    rm, r2 = stats if stats else (np.sqrt(np.mean((y - p) ** 2)), r2_score(y, p))
+    a.text(.03, .97, ('CV ' if stats else '') + f'R\\u00b2 {r2:.2f}\\n' + ('CV ' if stats else '') + f'RMSE {usd(rm)}', transform=a.transAxes, va='top', fontsize=12, fontweight='bold',
+           bbox=dict(boxstyle='round', fc='white', ec=GREY, alpha=.9))
+    return r2
+print('helpers ready')"""),
+    md("### 3.1 Before and after"),
+    code("""from sklearn.ensemble import RandomForestRegressor
+rf_raw = build('Random forest', 'raw', False, False, est=RandomForestRegressor(300, max_features=1 / 3, random_state=123, n_jobs=-1))
+Xr, yr = raw.drop(columns=[TARGET]), raw[TARGET].to_numpy()
+fit_in = rf_raw.fit(Xr, yr).predict(Xr)
+best_key = decision['accuracy_winner']; best_name = best_key.split('_', 1)[1]
+fig, axes = plt.subplots(1, 3, figsize=(20, 7), sharex=True, sharey=True)
+r1 = draw(axes[0], yr, fit_in, '1. What the R report plotted\\n(random forest, scored on its own training rows)', dot=RED)
+r2_ = draw(axes[1], oof['y_dedup'], oof['stage1_RF'], '2. The same model, honestly scored\\n(duplicates removed, held-out rows only)', stats=(s.loc[('RF', 1)].rmse, s.loc[('RF', 1)].r2))
+r3 = draw(axes[2], oof['y_dedup'], oof['stage5_BEST'], f'3. After cleaning, features, tuning\\nand the best model ({best_name})', stats=(s.loc[('BEST', 5)].rmse, s.loc[('BEST', 5)].r2))
+axes[0].set_ylabel('Predicted salary (USD)')
+axes[0].legend(loc='lower right', fontsize=9)
+plt.tight_layout()
+display(Markdown(f'''**Left to right:** the training-fit plot hugs the diagonal (R\\u00b2 **{r1:.2f}**) because the model has seen those exact rows. Scored honestly the same model reaches R\\u00b2 **{r2_:.2f}**, and after every improvement in this notebook R\\u00b2 **{r3:.2f}**. The final plot is the one to trust: it uses only rows the model never saw. The gap between the left and middle panel is overfitting; the small gain between the middle and right panel is everything we could do with seven columns.'''))"""),
+    md("""### 3.2 Scoreboard
+Every stage, scored on held-out rows. **Δ** columns compare with the previous stage of the same model family. Stage 0 is measured on a different, leaky test set (grey, italic), so its Δ to stage 1 is a correction, not a regression."""),
+    code("""rows_ = []
+for tag, name in (('RF', 'Random forest'), ('LGBM', 'Boosting (LightGBM)')):
+    prev = None
     for sidx in range(5):
-        a = axes[r, sidx]
-        y = oof['y_raw'] if sidx == 0 else oof['y_dedup']
-        p = oof[f'stage{sidx}_{tag}']
-        a.scatter(y, p, s=5, alpha=.25, color=BLUE)
-        edges = np.quantile(y, np.linspace(0, 1, 11)); idx = np.clip(np.digitize(y, edges[1:-1]), 0, 9)
-        a.plot([y[idx == k].mean() for k in range(10)], [p[idx == k].mean() for k in range(10)], '-o', color=GOLD, ms=3, lw=2)
-        a.plot([0, 450000], [0, 450000], '--', color=RED, lw=1)
-        row = s.loc[(tag, sidx)]
-        a.set_title(f'{STAGES[sidx]}\\nRMSE {usd(row.rmse)}  R\\u00b2 {row.r2:.2f}', fontsize=10)
-        a.set_xlim(0, 460000); a.set_ylim(0, 460000); a.xaxis.set_major_formatter(kfmt); a.yaxis.set_major_formatter(kfmt)
-        if r == 1: a.set_xlabel('Actual salary (USD)')
-        if sidx == 0: a.set_ylabel(f'{title}\\nprediction (USD)')
-fig.legend(handles=[Line2D([0], [0], color=RED, ls='--', label='perfect prediction'), Line2D([0], [0], color=GOLD, marker='o', label='average prediction within deciles of actual salary')], loc='lower center', ncol=2, bbox_to_anchor=(.5, -.01))
-plt.tight_layout(rect=(0, .04, 1, 1))"""),
-    md("""**How to read it.** The cloud tightens a little and the orange line moves toward the diagonal from stage to stage, but it never collapses onto it. Section 4 shows why that is a property of the data, and why the original R plots looked tighter."""),
-    code("""fig, ax = plt.subplots(1, 2, figsize=(13, 3.8))
+        r = s.loc[(tag, sidx)]
+        rows_.append(dict(Stage=f'{sidx} {STAGE_NAMES[sidx]}', Model=name, RMSE=r.rmse, MAE=r.mae, R2=r.r2,
+                          dRMSE=np.nan if prev is None else r.rmse - prev.rmse, dR2=np.nan if prev is None else r.r2 - prev.r2, leaky=sidx == 0))
+        prev = r
+b_ = s.loc[('BEST', 5)]
+rows_.append(dict(Stage='5 Best model', Model=best_name, RMSE=b_.rmse, MAE=b_.mae, R2=b_.r2, dRMSE=np.nan, dR2=np.nan, leaky=False))
+sb = pd.DataFrame(rows_)
+def paint(row):
+    if row.leaky: return ['color:#888;font-style:italic'] * (len(row) - 1)
+    if row.Stage.startswith('5'): return ['background-color:#fff3cd;font-weight:bold;color:#222'] * (len(row) - 1)
+    return [''] * (len(row) - 1)
+good_bad = lambda v: '' if pd.isna(v) else ('color:#1f9d6b' if v < 0 else 'color:#d1495b')
+good_bad_r2 = lambda v: '' if pd.isna(v) else ('color:#1f9d6b' if v > 0 else 'color:#d1495b')
+styler = (sb.drop(columns='leaky').style.hide(axis='index')
+          .apply(lambda r: paint(sb.loc[r.name]), axis=1)
+          .map(good_bad, subset=['dRMSE']).map(good_bad_r2, subset=['dR2'])
+          .format({'RMSE': '${:,.0f}', 'MAE': '${:,.0f}', 'R2': '{:.3f}', 'dRMSE': '{:+,.0f}', 'dR2': '{:+.3f}'}, na_rep='')
+          .set_caption('Held-out scoreboard (green = better than the previous stage, red = worse)'))
+styler"""),
+    code("""fig, ax = plt.subplots(1, 2, figsize=(15, 4.6))
 for tag, name, col in (('RF', 'Random forest', BLUE), ('LGBM', 'Boosting (LightGBM)', GREEN)):
     d_ = stage[(stage.family == tag) & (stage.stage <= 4)]
-    ax[0].plot(d_.stage, d_.rmse, '-o', color=col, label=name)
-    ax[1].plot(d_.stage, d_.r2, '-o', color=col, label=name)
-    ax[0].plot(0, d_.rmse.iloc[0], 'o', mfc='white', mec=col, ms=10)
-    ax[1].plot(0, d_.r2.iloc[0], 'o', mfc='white', mec=col, ms=10)
-b = stage[stage.stage == 5].iloc[0]
-ax[0].plot(5, b.rmse, '*', color=GOLD, ms=16, label='Best model'); ax[1].plot(5, b.r2, '*', color=GOLD, ms=16)
-for a, t in zip(ax, ['Held-out RMSE (USD), lower is better (axis does not start at zero)', 'Held-out R\\u00b2, higher is better (axis does not start at zero)']):
-    a.set_title(t); a.set_xticks(range(6)); a.set_xticklabels(['Raw', 'Dedup', 'Log', 'Clean', 'Tuned', 'Best'])
-ax[0].annotate('best model', (5, b.rmse), textcoords='offset points', xytext=(-8, 10), ha='right', fontsize=8)
-ax[1].annotate('best model', (5, b.r2), textcoords='offset points', xytext=(-8, -14), ha='right', fontsize=8)
-ax[0].legend(loc='upper center', bbox_to_anchor=(.5, -.12), ncol=3); plt.tight_layout()"""),
-    md("The hollow stage-0 markers are measured on a different, leaky test set, so they should not be compared with the others. Stage 1 is the honest starting line; every later gain is real but modest."),
+    for k, m in enumerate(['rmse', 'r2']):
+        ax[k].plot(d_.stage, d_[m], '-o', color=col, lw=2.5, ms=8, label=name)
+        ax[k].plot(0, d_[m].iloc[0], 'o', mfc='white', mec=col, ms=12)
+        for x_, v_ in zip(d_.stage, d_[m]): ax[k].annotate(f'{v_:,.0f}' if m == 'rmse' else f'{v_:.2f}', (x_, v_), textcoords='offset points', xytext=(0, 9 if tag == 'RF' else -16), ha='center', fontsize=8, color=col)
+ax[0].plot(5, b_.rmse, '*', color=GOLD, ms=20, label=f'Best: {best_name}'); ax[1].plot(5, b_.r2, '*', color=GOLD, ms=20)
+for a, t in zip(ax, ['Held-out RMSE (USD), lower is better', 'Held-out R\\u00b2, higher is better']):
+    a.set_title(t + '  (axis does not start at zero)'); a.set_xticks(range(6)); a.set_xticklabels([STAGE_NAMES[i].split(' (')[0] for i in range(6)], fontsize=9)
+ax[0].legend(loc='upper center', bbox_to_anchor=(.5, -.14), ncol=3); plt.tight_layout()"""),
+    md("The hollow stage-0 markers sit on a leaky test set; stage 1 is the honest starting line. The route back up is real but modest, which is the honest ceiling of a seven-column dataset."),
+
+    md("""### 3.3 Stage by stage
+Each large plot below shows that stage's out-of-fold predictions for **random forest (left)** and **boosting (right)**. The **gold line** is the average prediction within deciles of the actual salary; the **grey dashed line** is where that line sat at the previous stage, so you can see what the step moved. The closer the gold line is to the red diagonal, the better the model tracks high and low earners."""),
+    code("""def stage_fig(sidx):
+    fig, axes = plt.subplots(1, 2, figsize=(15, 7.4), sharex=True, sharey=True)
+    for a, (tag, name) in zip(axes, [('RF', 'Random forest'), ('LGBM', 'Boosting (LightGBM)')]):
+        y = oof['y_raw'] if sidx == 0 else oof['y_dedup']
+        prev = None
+        if sidx >= 1:
+            py = oof['y_raw'] if sidx == 1 else oof['y_dedup']
+            prev = (py, oof[f'stage{sidx - 1}_{tag}'])
+        draw(a, y, oof[f'stage{sidx}_{tag}'], name, prev=prev, stats=(s.loc[(tag, sidx)].rmse, s.loc[(tag, sidx)].r2))
+    axes[0].set_ylabel('Predicted salary (USD)')
+    axes[0].legend(loc='lower right', fontsize=9)
+    fig.suptitle(f'Stage {sidx}: {STAGE_NAMES[sidx]}' + ('  (leaky test set)' if sidx == 0 else ''), fontsize=14, fontweight='bold')
+    plt.tight_layout()
+
+def verdict(sidx, note):
+    out = []
+    for tag, name in (('RF', 'Random forest'), ('LGBM', 'Boosting')):
+        r = s.loc[(tag, sidx)]
+        if sidx == 0:
+            out.append(f'**{name}:** RMSE {usd(r.rmse)}, R\\u00b2 {r.r2:.3f}')
+        else:
+            p = s.loc[(tag, sidx - 1)]
+            out.append(f'**{name}:** RMSE {usd(r.rmse)} ({r.rmse - p.rmse:+,.0f}), R\\u00b2 {r.r2:.3f} ({r.r2 - p.r2:+.3f})')
+    d = [s.loc[(t, sidx)].rmse - s.loc[(t, sidx - 1)].rmse for t in ('RF', 'LGBM')] if sidx > 0 else [0, 0]
+    tag_ = 'starting point' if sidx == 0 else ('**helped**' if max(d) < -100 else '**hurt**' if min(d) > 100 else 'mixed or negligible')
+    display(Markdown(f'**Result ({tag_}):** ' + ' | '.join(out) + f'  \\n{note}'))
+print('stage helpers ready')"""),
+    md("""#### Stage 0: the R-style starting point
+**What we did:** the data exactly as the R project used it: all 3,755 rows including duplicates, original columns one-hot encoded, salary modelled in dollars, untuned random forest and default boosting.
+**Why it is not trustworthy:** copies of the same person can sit in both the training and the test fold, so held-out scores look better than they are."""),
+    code("stage_fig(0)"),
+    code("verdict(0, 'The model has effectively seen many of the rows it is scored on, so these scores are the most optimistic ones in the notebook.')"),
+    md("""#### Stage 1: remove duplicate rows
+**What we did:** dropped the 1,172 exact duplicates (31%). Nothing else changed.
+**What to expect:** worse scores. This is a correction, not an optimisation."""),
+    code("stage_fig(1)"),
+    code("verdict(1, 'Scores fall because the leak is gone. This is the honest baseline: every later number is measured against it.')"),
+    md("""#### Stage 2: model log-salary
+**What we did:** predict log(salary) and convert back to dollars, so errors are proportional to pay instead of dominated by the highest earners. This normally helps linear models."""),
+    code("stage_fig(2)"),
+    code("verdict(2, 'Tree models gain nothing from the log transform here, and converting back adds a little bias. We keep it because it helps the linear and neural models in the model search.')"),
+    md("""#### Stage 3: cleaning and features
+**What we did (learned on training folds only):** collapsed job titles and locations with fewer than 10 rows, added job family, region and a level ordinal, and trimmed the top and bottom 1% of salaries **when fitting** (never when scoring)."""),
+    code("stage_fig(3)"),
+    code("verdict(3, 'Grouping rare categories gives the model fewer, better-supported categories to learn from. The effect is modest.')"),
+    md("""#### Stage 4: hyperparameter tuning
+**What we did:** randomized search over tree depth, learning rate, regularisation and so on, run *inside* each fold (nested cross-validation) so the search never sees the rows it is scored on."""),
+    code("stage_fig(4)"),
+    code("verdict(4, 'Tuning helps both families, by a few hundred dollars of RMSE: real, but small next to the noise in the data.')"),
+    md("""#### Stage 5: the best model from the search
+**What we did:** compared ten model families under the same protocol and picked by the rule in section 6. The plot shows the accuracy winner on the same held-out rows."""),
+    code("""fig, ax = plt.subplots(1, 1, figsize=(8, 7.4))
+draw(ax, oof['y_dedup'], oof['stage5_BEST'], f'Stage 5: {best_name}', prev=(oof['y_dedup'], oof['stage4_LGBM']), stats=(s.loc[('BEST', 5)].rmse, s.loc[('BEST', 5)].r2))
+ax.set_ylabel('Predicted salary (USD)'); ax.legend(loc='lower right', fontsize=9); plt.tight_layout()
+b = s.loc[('BEST', 5)]
+p = s.loc[('LGBM', 4)]
+display(Markdown(f'**Result:** {best_name}: RMSE {usd(b.rmse)} ({b.rmse - p.rmse:+,.0f} vs tuned boosting), R\\u00b2 {b.r2:.3f}. The whole 10-family search changes the answer by roughly the width of the fold-to-fold noise: the data, not the algorithm, sets the limit (section 6).'))"""),
 ]
 
 # ------------------------------------------------------------------ 4 why diagonal
@@ -362,6 +467,12 @@ display(Markdown(f'''### 8.4 Decisions this supports
 3. Ten model families were tested. Their accuracy is statistically indistinguishable, so the rule picks the simplest model for accuracy and a quantile boosting model for the range-based product.
 4. The business value is in benchmarking: location, level and role premiums, pay bands, and an honest view of where the data is too thin to trust."""),
 ]
+
+# presentation: collapse the code (Jupyter/VS Code honour source_hidden; tools/make_report.py strips it fully)
+for c in cells:
+    if c.cell_type == "code":
+        c.metadata["jupyter"] = {"source_hidden": True}
+        c.metadata["tags"] = ["hide-input"]
 
 nb = nbf.v4.new_notebook()
 nb.cells = cells
