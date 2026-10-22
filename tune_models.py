@@ -84,8 +84,8 @@ def nested_cv(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def interval_coverage(df: pd.DataFrame, lo_q=0.1, hi_q=0.9) -> dict:
-    """Out-of-fold coverage of an 80% interval from LightGBM quantile models."""
+def oof_intervals(df: pd.DataFrame, lo_q=0.1, hi_q=0.9):
+    """Out-of-fold (low, high) bounds from LightGBM quantile models."""
     X, y = df[CAT + NUM].copy(), df[TARGET]
     for c in CAT:
         X[c] = X[c].astype("category")
@@ -95,7 +95,13 @@ def interval_coverage(df: pd.DataFrame, lo_q=0.1, hi_q=0.9) -> dict:
     for tr, te in KFold(5, shuffle=True, random_state=SEED).split(X):
         lo[te] = LGBMRegressor(objective="quantile", alpha=lo_q, **params).fit(X.iloc[tr], y.iloc[tr]).predict(X.iloc[te])
         hi[te] = LGBMRegressor(objective="quantile", alpha=hi_q, **params).fit(X.iloc[tr], y.iloc[tr]).predict(X.iloc[te])
-    lo, hi = np.minimum(lo, hi), np.maximum(lo, hi)
+    return np.minimum(lo, hi), np.maximum(lo, hi)
+
+
+def interval_coverage(df: pd.DataFrame, lo_q=0.1, hi_q=0.9) -> dict:
+    """Out-of-fold coverage of an 80% interval from LightGBM quantile models."""
+    y = df[TARGET]
+    lo, hi = oof_intervals(df, lo_q, hi_q)
     cover = float(((y >= lo) & (y <= hi)).mean())
     out = {"nominal": hi_q - lo_q, "coverage": cover, "median_width": float(np.median(hi - lo))}
     print(f"80% interval: coverage {cover:.1%}, median width ${out['median_width']:,.0f}")
