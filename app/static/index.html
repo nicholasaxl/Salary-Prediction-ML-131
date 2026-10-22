@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data Science Salary Estimator</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #fff; --ink: #1b2430; --muted: #66707e; --line: #e3e6eb;
+    --accent: #2f6fed; --accent-soft: #dfe9fd; --pos: #1f9d6b; --neg: #d1495b; --band: #c9d9fb; --peer: #f0b429;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #11151b; --card: #1a2029; --ink: #e8ecf2; --muted: #95a0b0; --line: #2a323e;
+            --accent: #6b9bff; --accent-soft: #223355; --pos: #3ccf91; --neg: #ff7a8a; --band: #2c4375; --peer: #e0a526; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  nav { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 20px; }
+  nav button { background: none; border: 0; padding: 10px 16px; font: inherit; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  nav button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+  .grid { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  .card + .card { margin-top: 16px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 4px; text-transform: uppercase; letter-spacing: .04em; }
+  label:first-child { margin-top: 0; }
+  select, input[type=range] { width: 100%; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 7px 8px; }
+  input[type=range] { padding: 0; }
+  h2 { font-size: 15px; margin: 0 0 12px; }
+  .big { font-size: 34px; font-weight: 700; letter-spacing: -.01em; }
+  .big small { font-size: 15px; font-weight: 400; color: var(--muted); }
+  .muted { color: var(--muted); font-size: 13px; }
+  .scale { position: relative; height: 46px; margin: 18px 0 6px; }
+  .scale .track { position: absolute; top: 20px; left: 0; right: 0; height: 6px; background: var(--line); border-radius: 3px; }
+  .scale .band { position: absolute; top: 16px; height: 14px; background: var(--band); border-radius: 7px; }
+  .scale .mid { position: absolute; top: 10px; width: 3px; height: 26px; background: var(--accent); border-radius: 2px; }
+  .scale .peer { position: absolute; top: 33px; height: 5px; background: var(--peer); border-radius: 3px; }
+  .scale .tick { position: absolute; top: 0; font-size: 11px; color: var(--muted); transform: translateX(-50%); white-space: nowrap; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+  .legend i { display: inline-block; width: 12px; height: 8px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+  .warn { background: #fff4e0; color: #7a4b00; border: 1px solid #f0c987; border-radius: 8px; padding: 8px 12px; margin: 0 0 12px; font-size: 13px; }
+  @media (prefers-color-scheme: dark) { .warn { background: #3a2c10; color: #f0c987; border-color: #5c4519; } }
+  .factor { display: grid; grid-template-columns: 150px 1fr 76px; align-items: center; gap: 10px; padding: 4px 0; font-size: 13px; }
+  .factor .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .factor .nm span { color: var(--muted); }
+  .diverge { position: relative; height: 12px; }
+  .diverge::before { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--line); }
+  .diverge b { position: absolute; top: 0; height: 12px; border-radius: 2px; }
+  .factor .val { text-align: right; font-variant-numeric: tabular-nums; }
+  .pos { color: var(--pos); } .neg { color: var(--neg); }
+  .bar-row { display: grid; grid-template-columns: 170px 1fr 70px 46px; gap: 10px; align-items: center; padding: 3px 0; font-size: 13px; cursor: pointer; border-radius: 4px; }
+  .bar-row:hover { background: var(--bg); }
+  .bar-row .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .range { position: relative; height: 14px; }
+  .range .iqr { position: absolute; top: 3px; height: 8px; background: var(--band); border-radius: 4px; }
+  .range .med { position: absolute; top: 0; width: 3px; height: 14px; background: var(--accent); border-radius: 2px; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .hist { display: flex; align-items: flex-end; gap: 2px; height: 80px; }
+  .hist div { flex: 1; background: var(--band); border-radius: 2px 2px 0 0; min-height: 1px; }
+  .filters { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 12px; }
+  .filters label { margin: 0 0 3px; }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  button.link { background: none; border: 0; color: var(--accent); cursor: pointer; font: inherit; padding: 0; }
+  .empty { color: var(--muted); padding: 24px 0; text-align: center; }
+  footer { margin-top: 28px; color: var(--muted); font-size: 12px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Data Science Salary Estimator</h1>
+  <p class="sub">Salary ranges from a quantile model trained on 2,583 de-duplicated survey rows (2020&ndash;2023, USD). Treat it as a range, not a quote.</p>
+
+  <nav role="tablist">
+    <button role="tab" id="tab-est" aria-selected="true">Estimator</button>
+    <button role="tab" id="tab-exp" aria-selected="false">Explorer</button>
+  </nav>
+
+  <!-- Estimator -->
+  <section id="est" class="grid">
+    <div class="card">
+      <label for="job_title">Job title</label><select id="job_title"></select>
+      <label for="experience_level">Experience level</label><select id="experience_level"></select>
+      <label for="company_location">Company location</label><select id="company_location"></select>
+      <label for="company_size">Company size</label><select id="company_size"></select>
+      <label for="employment_type">Employment type</label><select id="employment_type"></select>
+      <label for="remote_ratio">Work setup</label><select id="remote_ratio"></select>
+      <label for="work_year">Year</label><select id="work_year"></select>
+    </div>
+    <div>
+      <div class="card" id="result"><div class="empty">Loading&hellip;</div></div>
+      <div class="card hidden" id="why">
+        <h2>What moves this estimate</h2>
+        <div class="muted" id="whyNote" style="margin-bottom:8px"></div>
+        <div id="factors"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Explorer -->
+  <section id="exp" class="hidden">
+    <div class="card">
+      <div class="filters">
+        <div><label for="x_group">Group by</label><select id="x_group"></select></div>
+        <div><label for="x_job_title">Job title</label><select id="x_job_title"></select></div>
+        <div><label for="x_experience_level">Experience</label><select id="x_experience_level"></select></div>
+        <div><label for="x_company_location">Location</label><select id="x_company_location"></select></div>
+        <div><label for="x_company_size">Company size</label><select id="x_company_size"></select></div>
+        <div><label for="x_employment_type">Employment type</label><select id="x_employment_type"></select></div>
+        <div><label for="x_remote_ratio">Work setup</label><select id="x_remote_ratio"></select></div>
+        <div><label for="x_work_year">Year</label><select id="x_work_year"></select></div>
+        <div><label for="x_min_n">Min rows per group: <b id="x_min_n_val">10</b></label><input type="range" id="x_min_n" min="1" max="100" value="10"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="row"><h2 id="xTitle">Salary by group</h2><button class="link" id="xReset">Clear filters</button></div>
+      <div class="muted" id="xSummary" style="margin-bottom:10px"></div>
+      <div class="hist" id="xHist" aria-label="Salary distribution"></div>
+      <div class="legend" style="margin:14px 0 8px"><span><i style="background:var(--band)"></i>25th&ndash;75th percentile</span><span><i style="background:var(--accent)"></i>median</span><span>Click a row to filter to it</span></div>
+      <div id="xRows"></div>
+    </div>
+  </section>
+
+  <footer>
+    Estimates come from a 10th&ndash;90th percentile LightGBM model. In cross-validation that interval covered about 77.5% of held-out salaries (nominal 80%), and the median interval was about $115k wide: features like title, level and location explain only around 40% of salary variance. The data is a self-reported survey sample, so effects shown are associations, not causes.
+  </footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const usd = n => '$' + Math.round(n).toLocaleString('en-US');
+const k = n => '$' + Math.round(n / 1000) + 'k';
+const CAT_FIELDS = ['job_title', 'experience_level', 'company_location', 'company_size', 'employment_type'];
+const GROUPS = {job_title: 'Job title', experience_level: 'Experience level', company_location: 'Company location',
+                company_size: 'Company size', employment_type: 'Employment type', work_year: 'Year', remote_ratio: 'Work setup'};
+let OPT = null;
+
+function fill(sel, items, any) {
+  sel.innerHTML = (any ? `<option value="">${esc(any)}</option>` : '') +
+    items.map(o => `<option value="${esc(o.value)}">${esc(o.label)}${o.n != null ? ` (${o.n})` : ''}</option>`).join('');
+}
+
+async function init() {
+  const r = await (await fetch('/api/options')).json();
+  OPT = r.options;
+  const years = OPT.work_year.map(y => ({value: y, label: y}));
+  for (const f of CAT_FIELDS) { fill($(f), OPT[f]); fill($('x_' + f), OPT[f], 'All'); }
+  fill($('remote_ratio'), OPT.remote_ratio); fill($('x_remote_ratio'), OPT.remote_ratio, 'All');
+  fill($('work_year'), years); fill($('x_work_year'), years, 'All');
+  fill($('x_group'), Object.entries(GROUPS).map(([value, label]) => ({value, label})));
+  // sensible defaults
+  $('job_title').value = 'Data Scientist'; $('experience_level').value = 'MI'; $('company_location').value = 'US';
+  $('company_size').value = 'M'; $('employment_type').value = 'FT'; $('remote_ratio').value = '0';
+  $('work_year').value = String(Math.max(...OPT.work_year.map(Number)));
+  $('x_group').value = 'job_title';
+  estimate(); explore();
+}
+
+// ---- Estimator ----
+let estTimer;
+async function estimate() {
+  const body = {};
+  for (const f of [...CAT_FIELDS, 'remote_ratio', 'work_year']) body[f] = $(f).value;
+  body.remote_ratio = +body.remote_ratio; body.work_year = +body.work_year;
+  const res = await fetch('/api/predict', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  if (!res.ok) { $('result').innerHTML = `<div class="empty">Could not estimate: ${esc((await res.json()).detail)}</div>`; return; }
+  render(await res.json());
+}
+
+function render(r) {
+  const p = r.peers, has = p && p.n > 0;
+  const lo = Math.min(r.low, has ? p.p25 : r.low) * 0.9, hi = Math.max(r.high, has ? p.p75 : r.high) * 1.05;
+  const pos = v => ((v - lo) / (hi - lo) * 100).toFixed(2) + '%';
+  const w = (a, b) => ((b - a) / (hi - lo) * 100).toFixed(2) + '%';
+  $('result').innerHTML = `
+    ${r.warnings.map(x => `<div class="warn">${esc(x)}</div>`).join('')}
+    <div class="muted">Estimated salary (80% range)</div>
+    <div class="big">${usd(r.low)} &ndash; ${usd(r.high)} <small>per year</small></div>
+    <div class="muted">Most likely around <b>${usd(r.mid)}</b></div>
+    <div class="scale" aria-hidden="true">
+      <div class="track"></div>
+      <div class="band" style="left:${pos(r.low)};width:${w(r.low, r.high)}"></div>
+      <div class="mid" style="left:${pos(r.mid)}"></div>
+      ${has ? `<div class="peer" style="left:${pos(p.p25)};width:${w(p.p25, p.p75)}"></div>` : ''}
+      <span class="tick" style="left:${pos(r.low)}">${k(r.low)}</span>
+      <span class="tick" style="left:${pos(r.high)}">${k(r.high)}</span>
+    </div>
+    <div class="legend"><span><i style="background:var(--band)"></i>model 10&ndash;90% range</span><span><i style="background:var(--accent)"></i>model median</span>${has ? '<span><i style="background:var(--peer)"></i>observed peers 25&ndash;75%</span>' : ''}</div>
+    <p class="muted" style="margin-bottom:0">${has
+      ? `${p.n} observed rows with the ${esc(p.match)}: median ${usd(p.median)}, middle half ${usd(p.p25)}&ndash;${usd(p.p75)}.`
+      : 'No comparable observed rows.'}</p>`;
+
+  const max = Math.max(...r.factors.map(f => Math.abs(f.effect)), 1);
+  $('why').classList.remove('hidden');
+  $('whyNote').textContent = `Starting from a typical salary of ${usd(r.baseline)}, each factor adds or subtracts:`;
+  $('factors').innerHTML = r.factors.map(f => {
+    const pct = Math.abs(f.effect) / max * 50, neg = f.effect < 0;
+    return `<div class="factor"><div class="nm" title="${esc(f.label)}">${esc(f.label)} <span>${esc(f.value)}</span></div>
+      <div class="diverge"><b style="${neg ? 'right' : 'left'}:50%;width:${pct}%;background:var(--${neg ? 'neg' : 'pos'})"></b></div>
+      <div class="val ${neg ? 'neg' : 'pos'}">${neg ? '&minus;' : '+'}${usd(Math.abs(f.effect))}</div></div>`;
+  }).join('');
+}
+
+for (const f of [...CAT_FIELDS, 'remote_ratio', 'work_year']) $(f).addEventListener('change', () => { clearTimeout(estTimer); estTimer = setTimeout(estimate, 80); });
+
+// ---- Explorer ----
+const XF = ['job_title', 'experience_level', 'company_location', 'company_size', 'employment_type', 'remote_ratio', 'work_year'];
+async function explore() {
+  const q = new URLSearchParams({group_by: $('x_group').value, min_n: $('x_min_n').value});
+  for (const f of XF) if ($('x_' + f).value !== '') q.set(f, $('x_' + f).value);
+  const r = await (await fetch('/api/explore?' + q)).json();
+  $('xTitle').textContent = 'Salary by ' + GROUPS[$('x_group').value].toLowerCase();
+  if (!r.rows) { $('xSummary').textContent = ''; $('xHist').innerHTML = ''; $('xRows').innerHTML = '<div class="empty">No rows match these filters.</div>'; return; }
+  $('xSummary').textContent = `${r.rows.toLocaleString()} rows, median ${usd(r.overall.median)} (middle half ${usd(r.overall.p25)}–${usd(r.overall.p75)})` +
+    (r.hidden_groups ? ` · ${r.hidden_groups} small group${r.hidden_groups > 1 ? 's' : ''} hidden` : '');
+  const hm = Math.max(...r.histogram.counts, 1);
+  $('xHist').innerHTML = r.histogram.counts.map((c, i) =>
+    `<div style="height:${c / hm * 100}%" title="${k(r.histogram.edges[i])}–${k(r.histogram.edges[i + 1])}: ${c} rows"></div>`).join('');
+  if (!r.groups.length) { $('xRows').innerHTML = '<div class="empty">Every group is below the minimum size. Lower the slider.</div>'; return; }
+  const lo = 0, hi = Math.max(...r.groups.map(g => g.p75)) * 1.05;
+  const pct = v => (v / hi * 100).toFixed(2) + '%';
+  $('xRows').innerHTML = r.groups.map(g => `
+    <div class="bar-row" data-key="${esc(g.key)}" title="min ${usd(g.min)}, max ${usd(g.max)}, mean ${usd(g.mean)}">
+      <div class="nm">${esc(g.label)}</div>
+      <div class="range"><div class="iqr" style="left:${pct(g.p25)};width:${((g.p75 - g.p25) / hi * 100).toFixed(2)}%"></div><div class="med" style="left:${pct(g.median)}"></div></div>
+      <div class="num">${k(g.median)}</div><div class="num muted">${g.n}</div></div>`).join('');
+}
+$('xRows').addEventListener('click', e => {
+  const row = e.target.closest('.bar-row'); if (!row) return;
+  const g = $('x_group').value, sel = $('x_' + g);
+  if (sel && XF.includes(g)) { sel.value = row.dataset.key; explore(); }
+});
+$('x_min_n').addEventListener('input', () => { $('x_min_n_val').textContent = $('x_min_n').value; });
+$('x_min_n').addEventListener('change', explore);
+for (const id of ['x_group', ...XF.map(f => 'x_' + f)]) $(id).addEventListener('change', explore);
+$('xReset').addEventListener('click', () => { for (const f of XF) $('x_' + f).value = ''; explore(); });
+
+// ---- Tabs ----
+function tab(which) {
+  $('est').classList.toggle('hidden', which !== 'est'); $('exp').classList.toggle('hidden', which !== 'exp');
+  $('tab-est').setAttribute('aria-selected', which === 'est'); $('tab-exp').setAttribute('aria-selected', which === 'exp');
+}
+$('tab-est').onclick = () => tab('est'); $('tab-exp').onclick = () => tab('exp');
+init();
+</script>
+</body>
+</html>

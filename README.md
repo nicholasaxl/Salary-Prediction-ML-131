@@ -22,3 +22,17 @@ python tune_models.py        # nested-CV tuning and 80% prediction-interval cove
 ```
 
 Results and discussion are in `salary_analysis.ipynb`; raw numbers are in `outputs/`.
+
+## Salary estimator web app
+
+A FastAPI backend (`app/`) trains 10th/50th/90th-percentile LightGBM models at startup and serves a single-page UI:
+
+- **Estimator:** pick a job title, level, location, etc. to get a salary range, the observed peer range, and the factors moving the estimate.
+- **Explorer:** group and filter the data by any field, with distributions and 25-75% ranges.
+
+```
+.venv/Scripts/pip install -r requirements.txt
+.venv/Scripts/python -m uvicorn app.main:app --port 8000   # then open http://localhost:8000
+```
+
+The 10-90 interval covered about 77.5% of held-out salaries in cross-validation, and categories with fewer than 5 rows trigger a low-confidence warning in the UI.
